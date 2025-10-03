@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import {
   crearPartidaEstandar,
@@ -9,6 +9,7 @@ import {
   type Pieza,
   PiezaTipo,
   Posicion,
+  type Movimiento,
 } from '@/domain/chess';
 
 type CasillaInfo = {
@@ -16,6 +17,11 @@ type CasillaInfo = {
   posicion: Posicion;
   pieza?: Pieza;
   esOscura: boolean;
+};
+
+type SeleccionActual = {
+  piezaId: string;
+  origenKey: string;
 };
 
 const simbolosPorTipo: Record<PiezaTipo, string> = {
@@ -61,9 +67,89 @@ const claseDePieza = (pieza: Pieza): string => (
 const nombreEquipo = (equipo: Equipo): string =>
   equipo === Equipo.Blanco ? 'Blancas' : 'Negras';
 
+const formatearMovimiento = (
+  indice: number,
+  movimiento: Movimiento,
+  pieza: Pieza | undefined,
+): string => {
+  const etiqueta = pieza ? simbolosPorTipo[pieza.tipo] ?? '' : '';
+  return `${indice + 1}. ${etiqueta ? etiqueta + ' ' : ''}${movimiento.descripcion()}`;
+};
+
 export default function Home(): JSX.Element {
   const [partida] = useState(() => crearPartidaEstandar());
-  const casillas = useMemo(() => construirCasillas(partida), [partida]);
+  const [version, setVersion] = useState(0);
+  const [seleccion, setSeleccion] = useState<SeleccionActual | null>(null);
+  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+
+  const casillas = useMemo(() => {
+    void version;
+    return construirCasillas(partida);
+  }, [partida, version]);
+  const destinosDisponibles = useMemo(
+    () => new Set(movimientos.map((mov) => mov.destino.toKey())),
+    [movimientos],
+  );
+  const historial = useMemo(() => {
+    void version;
+    return partida.historialMovimientos();
+  }, [partida, version]);
+
+  const manejarClickCasilla = useCallback(
+    (casilla: CasillaInfo) => {
+      const key = casilla.posicion.toKey();
+      const turnoActual = partida.obtenerTurno();
+
+      if (seleccion && destinosDisponibles.has(key)) {
+        const movimiento = movimientos.find((mov) => mov.destino.toKey() === key);
+        if (!movimiento) {
+          return;
+        }
+        try {
+          partida.ejecutarMovimiento(movimiento);
+          setSeleccion(null);
+          setMovimientos([]);
+          setVersion((valor) => valor + 1);
+          setMensaje(null);
+        } catch (error) {
+          setMensaje(error instanceof Error ? error.message : 'Movimiento invalido');
+        }
+        return;
+      }
+
+      if (seleccion && seleccion.origenKey === key) {
+        setSeleccion(null);
+        setMovimientos([]);
+        setMensaje(null);
+        return;
+      }
+
+      if (casilla.pieza && casilla.pieza.perteneceA(turnoActual)) {
+        const nuevosMovimientos = partida.generarMovimientosPara(casilla.pieza.id);
+        setSeleccion({ piezaId: casilla.pieza.id, origenKey: key });
+        setMovimientos(nuevosMovimientos);
+        setMensaje(
+          nuevosMovimientos.length === 0
+            ? 'Esta pieza no tiene movimientos legales.'
+            : null,
+        );
+        return;
+      }
+
+      if (seleccion) {
+        setSeleccion(null);
+        setMovimientos([]);
+        setMensaje(null);
+      }
+    },
+    [destinosDisponibles, movimientos, partida, seleccion],
+  );
+
+  const turnoActual = partida.obtenerTurno();
+  const instruccion = seleccion
+    ? 'Elegi una casilla destino para completar el movimiento.'
+    : 'Selecciona una pieza del turno actual para ver sus movimientos.';
 
   return (
     <div className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
@@ -82,24 +168,44 @@ export default function Home(): JSX.Element {
             <h2 className="text-lg font-semibold">Tablero del dominio</h2>
             <div className="relative ml-6 inline-block pb-8">
               <div className="grid w-full grid-cols-8 grid-rows-8 overflow-hidden rounded-xl border border-slate-800 shadow-inner">
-                {casillas.map((casilla) => (
-                  <div
-                    key={casilla.id}
-                    className={`aspect-square flex items-center justify-center text-lg font-semibold ${
-                      casilla.esOscura ? 'bg-slate-800' : 'bg-slate-700/40'
-                    }`}
-                  >
-                    {casilla.pieza ? (
-                      <span
-                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-base font-semibold ${
-                          claseDePieza(casilla.pieza)
-                        }`}
-                      >
-                        {simboloDePieza(casilla.pieza)}
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
+                {casillas.map((casilla) => {
+                  const key = casilla.posicion.toKey();
+                  const esSeleccionada = seleccion?.origenKey === key;
+                  const esDestino = destinosDisponibles.has(key);
+                  const hayPiezaRival =
+                    esDestino && casilla.pieza && !casilla.pieza.perteneceA(turnoActual);
+
+                  const base = casilla.esOscura ? 'bg-slate-800' : 'bg-slate-700/40';
+                  const highlight = esSeleccionada
+                    ? 'ring-2 ring-emerald-400/70 ring-inset'
+                    : esDestino
+                    ? hayPiezaRival
+                      ? 'bg-emerald-500/30'
+                      : 'bg-emerald-400/20'
+                    : '';
+
+                  return (
+                    <button
+                      key={casilla.id}
+                      type="button"
+                      onClick={() => manejarClickCasilla(casilla)}
+                      className={`relative aspect-square flex items-center justify-center text-lg font-semibold transition ${base} ${highlight} focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900`}
+                      aria-label={`Casilla ${casilla.id}`}
+                    >
+                      {casilla.pieza ? (
+                        <span
+                          className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-base font-semibold ${claseDePieza(
+                            casilla.pieza,
+                          )}`}
+                        >
+                          {simboloDePieza(casilla.pieza)}
+                        </span>
+                      ) : esDestino ? (
+                        <span className="h-3 w-3 rounded-full bg-emerald-200/70" />
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
               <div className="pointer-events-none absolute -left-6 top-0 grid h-full grid-rows-8 place-items-center text-xs font-semibold text-slate-500">
                 {RANKS.map((rank) => (
@@ -122,20 +228,44 @@ export default function Home(): JSX.Element {
             <div className="flex h-[420px] w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900/50">
               <p className="text-sm text-slate-500">Placeholder para montar el canvas WebGL.</p>
             </div>
-            <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-300">
-              <p>
-                Turno actual:
-                <span className="ml-1 font-semibold text-slate-100">{nombreEquipo(partida.obtenerTurno())}</span>
-              </p>
-              <p className="mt-3 text-slate-400">
-                Puedes suscribirte a los movimientos del dominio para disparar animaciones, sonidos o efectos en la vista 3D sin
-                mezclar responsabilidades.
-              </p>
+            <div className="space-y-4">
+              <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-300">
+                <p>
+                  Turno actual:
+                  <span className="ml-1 font-semibold text-slate-100">{nombreEquipo(turnoActual)}</span>
+                </p>
+                <p className="mt-3 text-slate-400">{instruccion}</p>
+                {mensaje ? (
+                  <p className="mt-2 rounded bg-amber-400/10 px-3 py-2 text-amber-200">
+                    {mensaje}
+                  </p>
+                ) : null}
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
+                  Historial
+                </h3>
+                {historial.length === 0 ? (
+                  <p className="mt-3 text-sm text-slate-500">Sin movimientos todavía.</p>
+                ) : (
+                  <ol className="mt-3 space-y-2 text-sm text-slate-300">
+                    {historial.map(({ movimiento }, index) => {
+                      const pieza = partida.obtenerTablero().obtenerPieza(movimiento.destino);
+                      return (
+                        <li key={index} className="flex items-center justify-between gap-3">
+                          <span className="font-mono text-xs text-slate-500">#{index + 1}</span>
+                          <span>{formatearMovimiento(index, movimiento, pieza)}</span>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </div>
             </div>
           </div>
         </section>
       </main>
     </div>
-);
+  );
 }
 
