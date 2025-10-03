@@ -1,103 +1,114 @@
-import Image from "next/image";
+﻿'use client';
 
-export default function Home() {
+import { useMemo, useState } from 'react';
+
+import {
+  crearPartidaEstandar,
+  Equipo,
+  Partida,
+  type Pieza,
+  PiezaTipo,
+  Posicion,
+} from '@/domain/chess';
+
+type CasillaInfo = {
+  id: string;
+  posicion: Posicion;
+  pieza?: Pieza;
+  esOscura: boolean;
+};
+
+const simbolosPorTipo: Record<PiezaTipo, string> = {
+  [PiezaTipo.Rey]: 'K',
+  [PiezaTipo.Reina]: 'Q',
+  [PiezaTipo.Torre]: 'R',
+  [PiezaTipo.Alfil]: 'B',
+  [PiezaTipo.Caballo]: 'N',
+  [PiezaTipo.Peon]: 'P',
+};
+
+const construirCasillas = (partida: Partida): CasillaInfo[] => {
+  const tablero = partida.obtenerTablero();
+  const casillas: CasillaInfo[] = [];
+  for (let fila = 7; fila >= 0; fila -= 1) {
+    for (let columna = 0; columna < 8; columna += 1) {
+      const posicion = Posicion.desdeCoordenadas(fila, columna);
+      casillas.push({
+        id: posicion.toAlgebraica(),
+        posicion,
+        pieza: tablero.obtenerPieza(posicion),
+        esOscura: (fila + columna) % 2 === 1,
+      });
+    }
+  }
+  return casillas;
+};
+
+const simboloDePieza = (pieza: Pieza): string => {
+  const base = simbolosPorTipo[pieza.tipo];
+  return pieza.perteneceA(Equipo.Blanco) ? base : base.toLowerCase();
+};
+
+const nombreEquipo = (equipo: Equipo): string =>
+  equipo === Equipo.Blanco ? 'Blancas' : 'Negras';
+
+export default function Home(): JSX.Element {
+  const [partida] = useState(() => crearPartidaEstandar());
+  const casillas = useMemo(() => construirCasillas(partida), [partida]);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-12">
+        <header className="space-y-3">
+          <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Chess Lab</p>
+          <h1 className="text-3xl font-semibold">Motor de ajedrez + escena Three.js</h1>
+          <p className="max-w-3xl text-slate-400">
+            El dominio se modela con clases puras en TypeScript para que los movimientos, el estado de la partida y las reglas
+            del juego sean independientes del render. A la derecha dejamos un placeholder para inyectar la escena WebGL.
+          </p>
+        </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+        <section className="grid gap-12 lg:grid-cols-[minmax(0,420px)_1fr]">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Tablero del dominio</h2>
+            <div className="grid grid-cols-8 grid-rows-8 overflow-hidden rounded-xl border border-slate-800 shadow-inner">
+              {casillas.map((casilla) => (
+                <div
+                  key={casilla.id}
+                  className={`relative aspect-square flex items-center justify-center text-lg font-semibold ${
+                    casilla.esOscura ? 'bg-slate-800' : 'bg-slate-700/40'
+                  }`}
+                >
+                  {casilla.pieza ? simboloDePieza(casilla.pieza) : ''}
+                  <span className="pointer-events-none absolute bottom-1 left-1 text-[10px] text-slate-400/70">
+                    {casilla.id}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-slate-500">
+              Renderizamos la cuadrilla directamente desde el modelo para depurar reglas y servir de base a la escena 3D.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Escena Three.js</h2>
+            <div className="flex h-[420px] w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900/50">
+              <p className="text-sm text-slate-500">Placeholder para montar el canvas WebGL.</p>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-300">
+              <p>
+                Turno actual:
+                <span className="ml-1 font-semibold text-slate-100">{nombreEquipo(partida.obtenerTurno())}</span>
+              </p>
+              <p className="mt-3 text-slate-400">
+                Puedes suscribirte a los movimientos del dominio para disparar animaciones, sonidos o efectos en la vista 3D sin
+                mezclar responsabilidades.
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
