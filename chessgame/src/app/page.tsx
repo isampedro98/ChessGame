@@ -10,6 +10,7 @@ import {
   PiezaTipo,
   Posicion,
   type Movimiento,
+  type ResolucionMovimiento,
 } from '@/domain/chess';
 
 type CasillaInfo = {
@@ -22,6 +23,11 @@ type CasillaInfo = {
 type SeleccionActual = {
   piezaId: string;
   origenKey: string;
+};
+
+type MovimientoDetallado = {
+  titulo: string;
+  detalles: string[];
 };
 
 const simbolosPorTipo: Record<PiezaTipo, string> = {
@@ -67,13 +73,26 @@ const claseDePieza = (pieza: Pieza): string => (
 const nombreEquipo = (equipo: Equipo): string =>
   equipo === Equipo.Blanco ? 'Blancas' : 'Negras';
 
-const formatearMovimiento = (
+const describirMovimiento = (
   indice: number,
   movimiento: Movimiento,
   pieza: Pieza | undefined,
-): string => {
-  const etiqueta = pieza ? simbolosPorTipo[pieza.tipo] ?? '' : '';
-  return `${indice + 1}. ${etiqueta ? etiqueta + ' ' : ''}${movimiento.descripcion()}`;
+  resolucion: ResolucionMovimiento,
+): MovimientoDetallado => {
+  const etiquetaPieza = pieza ? simboloDePieza(pieza) : '';
+  const titulo = `${indice + 1}. ${etiquetaPieza ? etiquetaPieza + ' ' : ''}${movimiento.descripcion()}`;
+
+  const detalles: string[] = [];
+  if (resolucion.piezaCapturada) {
+    detalles.push(
+      `Captura ${simboloDePieza(resolucion.piezaCapturada)} en ${movimiento.destino.toAlgebraica()}`,
+    );
+  }
+  if (resolucion.esCoronacion && resolucion.piezaPromocionada) {
+    detalles.push(`Corona a ${simboloDePieza(resolucion.piezaPromocionada)}`);
+  }
+
+  return { titulo, detalles };
 };
 
 export default function Home(): JSX.Element {
@@ -95,6 +114,7 @@ export default function Home(): JSX.Element {
     void version;
     return partida.historialMovimientos();
   }, [partida, version]);
+  const tablero = partida.obtenerTablero();
 
   const manejarClickCasilla = useCallback(
     (casilla: CasillaInfo) => {
@@ -248,13 +268,24 @@ export default function Home(): JSX.Element {
                 {historial.length === 0 ? (
                   <p className="mt-3 text-sm text-slate-500">Sin movimientos todavía.</p>
                 ) : (
-                  <ol className="mt-3 space-y-2 text-sm text-slate-300">
-                    {historial.map(({ movimiento }, index) => {
-                      const pieza = partida.obtenerTablero().obtenerPieza(movimiento.destino);
+                  <ol className="mt-3 space-y-3 text-sm text-slate-300">
+                    {historial.map(({ movimiento, resolucion }, index) => {
+                      const pieza = tablero.obtenerPieza(movimiento.destino);
+                      const descripcion = describirMovimiento(index, movimiento, pieza, resolucion);
                       return (
-                        <li key={index} className="flex items-center justify-between gap-3">
-                          <span className="font-mono text-xs text-slate-500">#{index + 1}</span>
-                          <span>{formatearMovimiento(index, movimiento, pieza)}</span>
+                        <li key={index} className="space-y-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-mono text-xs text-slate-500">#{index + 1}</span>
+                            <span>{descripcion.titulo}</span>
+                          </div>
+                          {descripcion.detalles.map((detalle, detalleIndex) => (
+                            <p
+                              key={`${index}-${detalleIndex}`}
+                              className="pl-6 text-xs text-slate-500"
+                            >
+                              {detalle}
+                            </p>
+                          ))}
                         </li>
                       );
                     })}
@@ -268,4 +299,3 @@ export default function Home(): JSX.Element {
     </div>
   );
 }
-
