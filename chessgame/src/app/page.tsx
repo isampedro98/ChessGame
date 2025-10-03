@@ -27,6 +27,9 @@ const simbolosPorTipo: Record<PiezaTipo, string> = {
   [PiezaTipo.Peon]: 'P',
 };
 
+const FILES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
 const construirCasillas = (partida: Partida): CasillaInfo[] => {
   const tablero = partida.obtenerTablero();
   const casillas: CasillaInfo[] = [];
@@ -48,6 +51,12 @@ const simboloDePieza = (pieza: Pieza): string => {
   const base = simbolosPorTipo[pieza.tipo];
   return pieza.perteneceA(Equipo.Blanco) ? base : base.toLowerCase();
 };
+
+const claseDePieza = (pieza: Pieza): string => (
+  pieza.perteneceA(Equipo.Blanco)
+    ? 'bg-white/10 text-slate-50 ring-1 ring-white/40'
+    : 'bg-slate-200 text-slate-900'
+);
 
 const nombreEquipo = (equipo: Equipo): string =>
   equipo === Equipo.Blanco ? 'Blancas' : 'Negras';
@@ -71,20 +80,37 @@ export default function Home(): JSX.Element {
         <section className="grid gap-12 lg:grid-cols-[minmax(0,420px)_1fr]">
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Tablero del dominio</h2>
-            <div className="grid grid-cols-8 grid-rows-8 overflow-hidden rounded-xl border border-slate-800 shadow-inner">
-              {casillas.map((casilla) => (
-                <div
-                  key={casilla.id}
-                  className={`relative aspect-square flex items-center justify-center text-lg font-semibold ${
-                    casilla.esOscura ? 'bg-slate-800' : 'bg-slate-700/40'
-                  }`}
-                >
-                  {casilla.pieza ? simboloDePieza(casilla.pieza) : ''}
-                  <span className="pointer-events-none absolute bottom-1 left-1 text-[10px] text-slate-400/70">
-                    {casilla.id}
-                  </span>
-                </div>
-              ))}
+            <div className="relative ml-6 inline-block pb-8">
+              <div className="grid w-full grid-cols-8 grid-rows-8 overflow-hidden rounded-xl border border-slate-800 shadow-inner">
+                {casillas.map((casilla) => (
+                  <div
+                    key={casilla.id}
+                    className={`aspect-square flex items-center justify-center text-lg font-semibold ${
+                      casilla.esOscura ? 'bg-slate-800' : 'bg-slate-700/40'
+                    }`}
+                  >
+                    {casilla.pieza ? (
+                      <span
+                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-base font-semibold ${
+                          claseDePieza(casilla.pieza)
+                        }`}
+                      >
+                        {simboloDePieza(casilla.pieza)}
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute -left-6 top-0 grid h-full grid-rows-8 place-items-center text-xs font-semibold text-slate-500">
+                {RANKS.map((rank) => (
+                  <span key={rank}>{rank}</span>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-0 grid w-full grid-cols-8 place-items-center text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                {FILES.map((file) => (
+                  <span key={file}>{file}</span>
+                ))}
+              </div>
             </div>
             <p className="text-sm text-slate-500">
               Renderizamos la cuadrilla directamente desde el modelo para depurar reglas y servir de base a la escena 3D.
@@ -110,5 +136,6 @@ export default function Home(): JSX.Element {
         </section>
       </main>
     </div>
-  );
+);
 }
+
