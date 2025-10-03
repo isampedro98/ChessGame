@@ -11,6 +11,7 @@
   "dependencies": {
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "three": "^0.169.0",
     "next": "15.5.4"
   },
   "devDependencies": {
@@ -25,3 +26,4 @@
     "@eslint/eslintrc": "^3"
   }
 }
+

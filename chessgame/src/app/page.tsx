@@ -13,6 +13,8 @@ import {
   type ResolucionMovimiento,
 } from '@/domain/chess';
 
+import { ChessScene } from './ChessScene';
+
 type CasillaInfo = {
   id: string;
   posicion: Posicion;
@@ -95,6 +97,20 @@ const describirMovimiento = (
   return { titulo, detalles };
 };
 
+const piezasParaEscena = (partida: Partida) =>
+  partida
+    .obtenerTablero()
+    .todasLasPiezas()
+    .map((pieza) => ({
+      id: pieza.id,
+      tipo: pieza.tipo,
+      equipo: pieza.equipo,
+      posicion: {
+        fila: pieza.obtenerPosicion().fila,
+        columna: pieza.obtenerPosicion().columna,
+      },
+    }));
+
 export default function Home(): JSX.Element {
   const [partida] = useState(() => crearPartidaEstandar());
   const [version, setVersion] = useState(0);
@@ -115,6 +131,10 @@ export default function Home(): JSX.Element {
     return partida.historialMovimientos();
   }, [partida, version]);
   const tablero = partida.obtenerTablero();
+  const piezasEscena = useMemo(() => {
+    void version;
+    return piezasParaEscena(partida);
+  }, [partida, version]);
 
   const manejarClickCasilla = useCallback(
     (casilla: CasillaInfo) => {
@@ -227,7 +247,7 @@ export default function Home(): JSX.Element {
                   );
                 })}
               </div>
-              <div className="pointer-events-none absolute -left-6 top-0 grid h-full grid-rows-8 place-items-center text-xs font-semibold text-slate-500">
+              <div className="pointer-events-none.absolute -left-6 top-0 grid h-full grid-rows-8 place-items-center text-xs font-semibold text-slate-500">
                 {RANKS.map((rank) => (
                   <span key={rank}>{rank}</span>
                 ))}
@@ -245,8 +265,8 @@ export default function Home(): JSX.Element {
 
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Escena Three.js</h2>
-            <div className="flex h-[420px] w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900/50">
-              <p className="text-sm text-slate-500">Placeholder para montar el canvas WebGL.</p>
+            <div className="flex h-[420px] w-full items-center justify-center overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
+              <ChessScene piezasIniciales={piezasEscena} />
             </div>
             <div className="space-y-4">
               <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-300">
@@ -299,3 +319,7 @@ export default function Home(): JSX.Element {
     </div>
   );
 }
+
+
+
+
