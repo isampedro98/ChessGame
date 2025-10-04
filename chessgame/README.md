@@ -1,35 +1,49 @@
-﻿# ChessGame
+# ChessGame
 
-Next.js application to experiment with a TypeScript chess engine and a future Three.js board.
+Next.js application that pairs a TypeScript chess engine with a fully rendered Three.js board. The repository houses the domain logic, a modular 3D scene, and the UI layer that ties everything together.
 
 ## Requirements
-
 - Node.js 20+
 - npm 10+
 
 Install dependencies once:
-
 ```bash
 npm install
 ```
 
 ## Development
-
 ```bash
 npm run dev
 ```
+Visit http://localhost:3000 to explore the UI, play through moves, and see the synchronised 3D scene.
 
-Visit [http://localhost:3000](http://localhost:3000) to see the UI. The page renders the board from the domain model and a Three.js scene placeholder.
+## Project Layout
+```
+chessgame/
+  src/
+    app/
+      chess-ui/      Chess-specific view helpers (documented in README.md)
+      components/    React components for board, panels, and scene wrapper
+      hooks/         Stateful hooks that orchestrate the UI
+      i18n/          Translation provider and locale dictionaries
+    chess-scene/     Three.js scene builders for board, table, lights, pieces
+    domain/
+      chess/
+        core/        Engine primitives: board, pieces, positions, moves
+        pieces/      Concrete piece implementations
+        moves/       Move classes built on the core contract
+        factories/   Game bootstrapping helpers
+```
+Each folder contains its own README with additional context and extension points.
 
-## Useful scripts
-
+## Useful Scripts
 ```bash
-npm run lint   # Executes ESLint using the project configuration
+npm run lint    # Run ESLint using the project configuration
 ```
 
-## Current status
-
-- Domain modeled with TypeScript classes under `src/domain/chess` (board, moves, pieces, game, factories).
-- Main page (`src/app/page.tsx`) displays the board, move history, and a Three.js stage.
-- Internationalization via a lightweight provider supports English and Spanish UI text.
-- Upcoming work: special move rules (castling, en passant, promotion flows), animated synchronization between the domain and the 3D scene, richer visual assets for the pieces.
+## Current Status
+- TypeScript engine models positions, moves, and board state under `src/domain/chess`.
+- Next.js page (`src/app/page.tsx`) renders history panels, the 3D scene, and live board state.
+- Three.js helpers in `src/chess-scene` provide reusable builders for geometries, lighting, and materials.
+- Internationalisation layer under `src/app/i18n` ships English and Spanish translations.
+- Roadmap: special-move polish (castling, en passant animations), richer piece materials, and interactive camera controls.
