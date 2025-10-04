@@ -1,10 +1,11 @@
 ﻿import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { PiezaTipo } from '@/domain/chess';
 
 interface ChessSceneProps {
   piezasIniciales: Array<{
     id: string;
-    tipo: string;
+    tipo: PiezaTipo;
     equipo: 'BLANCO' | 'NEGRO';
     posicion: { fila: number; columna: number };
   }>;
@@ -142,7 +143,7 @@ export function ChessScene({ piezasIniciales }: ChessSceneProps) {
     const piezas = crearPiezasIniciales(piezasIniciales);
     piezas.forEach((pieza) => {
       scene.add(pieza);
-      piezasRef.current.set(pieza.name, pieza);
+      piezasMap.set(pieza.name, pieza);
     });
 
     rendererRef.current = renderer;
@@ -179,6 +180,8 @@ export function ChessScene({ piezasIniciales }: ChessSceneProps) {
 
   return <canvas ref={canvasRef} className="h-full w-full" />;
 }
+
+
 
 
 
