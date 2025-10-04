@@ -49,10 +49,6 @@ jobs:
         working-directory: ./chessgame
         run: npx next build
 
-      - name: Export static files
-        working-directory: ./chessgame
-        run: npx next export
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
