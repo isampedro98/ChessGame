@@ -1,32 +1,39 @@
-'use client';
+﻿'use client';
 
-import type { HistorialItem } from '@/app/hooks/useChessUI';
+import type { HistoryEntry } from '@/app/hooks/useChessUI';
+import { useTranslation } from '@/app/i18n/TranslationProvider';
 
 interface HistoryPanelProps {
-  historial: HistorialItem[];
+  history: HistoryEntry[];
+  title: string;
+  emptyState: string;
 }
 
-export const HistoryPanel = ({ historial }: HistoryPanelProps) => (
-  <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
-    <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Historial</h3>
-    {historial.length === 0 ? (
-      <p className="mt-3 text-sm text-slate-500">Sin movimientos todavia.</p>
-    ) : (
-      <ol className="mt-3 space-y-3 text-sm text-slate-300">
-        {historial.map(({ numero, titulo, detalles }) => (
-          <li key={numero} className="space-y-1">
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-mono text-xs text-slate-500">#{numero}</span>
-              <span>{titulo}</span>
-            </div>
-            {detalles.map((detalle, detalleIndex) => (
-              <p key={`${numero}-${detalleIndex}`} className="pl-6 text-xs text-slate-500">
-                {detalle}
-              </p>
-            ))}
-          </li>
-        ))}
-      </ol>
-    )}
-  </div>
-);
+export const HistoryPanel = ({ history, title, emptyState }: HistoryPanelProps) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+      <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">{title}</h3>
+      {history.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-500">{emptyState}</p>
+      ) : (
+        <ol className="mt-3 space-y-3 text-sm text-slate-300">
+          {history.map(({ sequence, title: entryTitle, notes }) => (
+            <li key={sequence} className="space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-mono text-xs text-slate-500">#{sequence}</span>
+                <span>{entryTitle}</span>
+              </div>
+              {notes.map((note, noteIndex) => (
+                <p key={`${sequence}-${noteIndex}`} className="pl-6 text-xs text-slate-500">
+                  {t(note.key, note.params)}
+                </p>
+              ))}
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+};

@@ -1,34 +1,35 @@
 ﻿# ChessGame
 
-Aplicación Next.js en construcción para experimentar con un motor de ajedrez escrito en TypeScript y una escena 3D con Three.js.
+Next.js application to experiment with a TypeScript chess engine and a future Three.js board.
 
-## Requisitos
+## Requirements
 
 - Node.js 20+
 - npm 10+
 
-Instala dependencias una sola vez:
+Install dependencies once:
 
 ```bash
 npm install
 ```
 
-## Correr el modo desarrollo
+## Development
 
 ```bash
 npm run dev
 ```
 
-Luego abre [http://localhost:3000](http://localhost:3000). La página muestra el tablero generado por el dominio y un placeholder para la futura escena Three.js.
+Visit [http://localhost:3000](http://localhost:3000) to see the UI. The page renders the board from the domain model and a Three.js scene placeholder.
 
-## Otros scripts útiles
+## Useful scripts
 
 ```bash
-npm run lint   # Ejecuta ESLint con la configuración del proyecto
+npm run lint   # Executes ESLint using the project configuration
 ```
 
-## Estado actual
+## Current status
 
-- Dominio de ajedrez modelado con clases puras (`src/domain/chess`).
-- Página principal (`src/app/page.tsx`) que renderiza el tablero desde el modelo y reserva espacio para el canvas WebGL.
-- Pendiente integrar la vista 3D, reglas especiales (enroque, en passant, coronación) y capa de interacción.
+- Domain modeled with TypeScript classes under `src/domain/chess` (board, moves, pieces, game, factories).
+- Main page (`src/app/page.tsx`) displays the board, move history, and a Three.js stage.
+- Internationalization via a lightweight provider supports English and Spanish UI text.
+- Upcoming work: special move rules (castling, en passant, promotion flows), animated synchronization between the domain and the 3D scene, richer visual assets for the pieces.

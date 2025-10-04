@@ -1,0 +1,52 @@
+﻿export type Locale = 'en' | 'es';
+
+export const fallbackLocale: Locale = 'en';
+
+export const translations: Record<Locale, Record<string, string>> = {
+  en: {
+    'app.tagline': 'Chess Lab',
+    'app.title': 'Chess engine + Three.js stage',
+    'app.description':
+      'The domain is modeled with pure TypeScript classes so moves, game state, and rules remain decoupled from the render layer. The right column hosts the Three.js scene placeholder that will sync with the domain.',
+    'board.title': 'Domain board',
+    'board.subtitle': 'We render the grid straight from the domain model to debug rules and feed the 3D scene.',
+    'board.instruction.selectPiece': 'Select a piece for the current turn to preview its moves.',
+    'board.instruction.selectDestination': 'Choose a destination square to complete the move.',
+    'board.message.noLegalMoves': 'This piece has no legal moves.',
+    'board.message.invalidMove': 'Invalid move',
+    'board.squareAria': 'Square {id}',
+    'scene.title': 'Three.js scene',
+    'history.title': 'Move history',
+    'history.empty': 'No moves yet.',
+    'history.note.capture': 'Captures {piece} on {square}',
+    'history.note.promote': 'Promotes to {piece}',
+    'info.currentTurn': 'Current turn',
+    'team.white': 'White',
+    'team.black': 'Black',
+    'controls.language': 'Language',
+    'controls.language.switch': '{next}',
+  },
+  es: {
+    'app.tagline': 'Chess Lab',
+    'app.title': 'Motor de ajedrez + escena Three.js',
+    'app.description':
+      'El dominio se modela con clases puras en TypeScript para que los movimientos, el estado de la partida y las reglas del juego sean independientes del render. A la derecha dejamos un placeholder para inyectar la escena WebGL.',
+    'board.title': 'Tablero del dominio',
+    'board.subtitle': 'Renderizamos la cuadrilla directamente desde el modelo para depurar reglas y servir de base a la escena 3D.',
+    'board.instruction.selectPiece': 'Seleccioná una pieza del turno actual para ver sus movimientos.',
+    'board.instruction.selectDestination': 'Elegí una casilla destino para completar el movimiento.',
+    'board.message.noLegalMoves': 'Esta pieza no tiene movimientos legales.',
+    'board.message.invalidMove': 'Movimiento inválido',
+    'board.squareAria': 'Casilla {id}',
+    'scene.title': 'Escena Three.js',
+    'history.title': 'Historial de jugadas',
+    'history.empty': 'Sin movimientos todavía.',
+    'history.note.capture': 'Captura {piece} en {square}',
+    'history.note.promote': 'Coronación a {piece}',
+    'info.currentTurn': 'Turno actual',
+    'team.white': 'Blancas',
+    'team.black': 'Negras',
+    'controls.language': 'Idioma',
+    'controls.language.switch': '{next}',
+  },
+};

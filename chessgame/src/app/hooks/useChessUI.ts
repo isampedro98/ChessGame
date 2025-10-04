@@ -3,180 +3,172 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import {
-  Equipo,
-  Partida,
-  PiezaTipo,
-  Posicion,
-  type Movimiento,
-  type Pieza,
+  Game,
+  Team,
+  PieceType,
+  Position,
+  type Move,
+  type Piece,
 } from '@/domain/chess';
 
 import {
-  describirMovimiento,
-  type MovimientoDetallado,
+  describeMove,
+  type MoveDetails,
 } from '@/app/chess-ui/helpers';
+import { useTranslation } from '@/app/i18n/TranslationProvider';
 
-export type CasillaInfo = {
+export type SquareInfo = {
   id: string;
-  posicion: Posicion;
-  pieza?: Pieza;
-  esOscura: boolean;
+  position: Position;
+  piece?: Piece;
+  isDark: boolean;
 };
 
-type SeleccionActual = {
-  piezaId: string;
-  origenKey: string;
+type SelectionState = {
+  pieceId: string;
+  originKey: string;
 };
 
-export type HistorialItem = MovimientoDetallado & {
-  numero: number;
+export type HistoryEntry = MoveDetails & {
+  sequence: number;
 };
 
-export type PiezaEscena = {
+export type ScenePiece = {
   id: string;
-  tipo: PiezaTipo;
-  equipo: Equipo;
-  posicion: { fila: number; columna: number };
+  type: PieceType;
+  team: Team;
+  position: { row: number; column: number };
 };
 
-const construirCasillas = (partida: Partida, version: number): CasillaInfo[] => {
+const buildSquares = (game: Game, version: number): SquareInfo[] => {
   void version;
-  const tablero = partida.obtenerTablero();
-  const casillas: CasillaInfo[] = [];
+  const board = game.getBoard();
+  const squares: SquareInfo[] = [];
 
-  for (let fila = 7; fila >= 0; fila -= 1) {
-    for (let columna = 0; columna < 8; columna += 1) {
-      const posicion = Posicion.desdeCoordenadas(fila, columna);
-      casillas.push({
-        id: posicion.toAlgebraica(),
-        posicion,
-        pieza: tablero.obtenerPieza(posicion),
-        esOscura: (fila + columna) % 2 === 1,
+  for (let row = 7; row >= 0; row -= 1) {
+    for (let column = 0; column < 8; column += 1) {
+      const position = Position.fromCoordinates(row, column);
+      squares.push({
+        id: position.toAlgebraic(),
+        position,
+        piece: board.getPiece(position),
+        isDark: (row + column) % 2 === 1,
       });
     }
   }
 
-  return casillas;
+  return squares;
 };
 
-const construirHistorial = (partida: Partida, version: number): HistorialItem[] => {
+const buildHistory = (game: Game, version: number): HistoryEntry[] => {
   void version;
-  const historial = partida.historialMovimientos();
-  const tablero = partida.obtenerTablero();
+  const history = game.moveHistory();
+  const board = game.getBoard();
 
-  return historial.map(({ movimiento, resolucion }, index) => {
-    const pieza = tablero.obtenerPieza(movimiento.destino);
-    const descripcion = describirMovimiento(index, movimiento, pieza, resolucion);
+  return history.map(({ move, resolution }, index) => {
+    const piece = board.getPiece(move.to);
+    const details = describeMove(index, move, piece, resolution);
     return {
-      numero: index + 1,
-      ...descripcion,
+      sequence: index + 1,
+      ...details,
     };
   });
 };
 
-const piezasParaEscena = (partida: Partida, version: number): PiezaEscena[] => {
+const buildScenePieces = (game: Game, version: number): ScenePiece[] => {
   void version;
-  return partida
-    .obtenerTablero()
-    .todasLasPiezas()
-    .map((pieza) => ({
-      id: pieza.id,
-      tipo: pieza.tipo,
-      equipo: pieza.equipo,
-      posicion: {
-        fila: pieza.obtenerPosicion().fila,
-        columna: pieza.obtenerPosicion().columna,
+  return game
+    .getBoard()
+    .allPieces()
+    .map((piece) => ({
+      id: piece.id,
+      type: piece.type,
+      team: piece.team,
+      position: {
+        row: piece.getPosition().row,
+        column: piece.getPosition().column,
       },
     }));
 };
 
-export const useChessUI = (partida: Partida) => {
+export const useChessUI = (game: Game) => {
   const [version, setVersion] = useState(0);
-  const [seleccion, setSeleccion] = useState<SeleccionActual | null>(null);
-  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
-  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [selection, setSelection] = useState<SelectionState | null>(null);
+  const [candidateMoves, setCandidateMoves] = useState<Move[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+  const { t } = useTranslation();
 
-  const casillas = useMemo(() => construirCasillas(partida, version), [partida, version]);
+  const squares = useMemo(() => buildSquares(game, version), [game, version]);
 
-  const destinosDisponibles = useMemo(
-    () => new Set(movimientos.map((mov) => mov.destino.toKey())),
-    [movimientos],
+  const availableDestinations = useMemo(
+    () => new Set(candidateMoves.map((move) => move.to.toKey())),
+    [candidateMoves],
   );
 
-  const historialDetallado = useMemo(
-    () => construirHistorial(partida, version),
-    [partida, version],
-  );
+  const history = useMemo(() => buildHistory(game, version), [game, version]);
 
-  const piezasEscena = useMemo(
-    () => piezasParaEscena(partida, version),
-    [partida, version],
-  );
+  const scenePieces = useMemo(() => buildScenePieces(game, version), [game, version]);
 
-  const manejarClickCasilla = useCallback(
-    (casilla: CasillaInfo) => {
-      const key = casilla.posicion.toKey();
-      const turnoActual = partida.obtenerTurno();
+  const handleSquareClick = useCallback(
+    (square: SquareInfo) => {
+      const key = square.position.toKey();
+      const currentTurn = game.getTurn();
 
-      if (seleccion && destinosDisponibles.has(key)) {
-        const movimiento = movimientos.find((mov) => mov.destino.toKey() === key);
-        if (!movimiento) {
+      if (selection && availableDestinations.has(key)) {
+        const move = candidateMoves.find((candidate) => candidate.to.toKey() === key);
+        if (!move) {
           return;
         }
         try {
-          partida.ejecutarMovimiento(movimiento);
-          setSeleccion(null);
-          setMovimientos([]);
-          setVersion((valor) => valor + 1);
-          setMensaje(null);
+          game.executeMove(move);
+          setSelection(null);
+          setCandidateMoves([]);
+          setVersion((value) => value + 1);
+          setMessage(null);
         } catch (error) {
-          setMensaje(error instanceof Error ? error.message : 'Movimiento invalido');
+          setMessage(error instanceof Error ? error.message : t('board.message.invalidMove'));
         }
         return;
       }
 
-      if (seleccion && seleccion.origenKey === key) {
-        setSeleccion(null);
-        setMovimientos([]);
-        setMensaje(null);
+      if (selection && selection.originKey === key) {
+        setSelection(null);
+        setCandidateMoves([]);
+        setMessage(null);
         return;
       }
 
-      if (casilla.pieza && casilla.pieza.perteneceA(turnoActual)) {
-        const nuevosMovimientos = partida.generarMovimientosPara(casilla.pieza.id);
-        setSeleccion({ piezaId: casilla.pieza.id, origenKey: key });
-        setMovimientos(nuevosMovimientos);
-        setMensaje(
-          nuevosMovimientos.length === 0
-            ? 'Esta pieza no tiene movimientos legales.'
-            : null,
-        );
+      if (square.piece && square.piece.belongsTo(currentTurn)) {
+        const moves = game.generateMovesFor(square.piece.id);
+        setSelection({ pieceId: square.piece.id, originKey: key });
+        setCandidateMoves(moves);
+        setMessage(moves.length === 0 ? t('board.message.noLegalMoves') : null);
         return;
       }
 
-      if (seleccion) {
-        setSeleccion(null);
-        setMovimientos([]);
-        setMensaje(null);
+      if (selection) {
+        setSelection(null);
+        setCandidateMoves([]);
+        setMessage(null);
       }
     },
-    [destinosDisponibles, movimientos, partida, seleccion],
+    [availableDestinations, candidateMoves, game, selection, t],
   );
 
-  const turnoActual = partida.obtenerTurno();
-  const instruccion = seleccion
-    ? 'Elegi una casilla destino para completar el movimiento.'
-    : 'Selecciona una pieza del turno actual para ver sus movimientos.';
+  const currentTurn = game.getTurn();
+  const instruction = selection
+    ? t('board.instruction.selectDestination')
+    : t('board.instruction.selectPiece');
 
   return {
-    casillas,
-    destinosDisponibles,
-    historialDetallado,
-    instruccion,
-    mensaje,
-    onCasillaClick: manejarClickCasilla,
-    piezasEscena,
-    seleccionKey: seleccion?.origenKey ?? null,
-    turnoActual,
+    squares,
+    availableDestinations,
+    history,
+    instruction,
+    message,
+    onSquareClick: handleSquareClick,
+    scenePieces,
+    selectedSquareKey: selection?.originKey ?? null,
+    currentTurn,
   };
 };

@@ -1,8 +1,8 @@
-﻿# Núcleo del dominio
+﻿# Core
 
-- `Equipo.ts`: enum para bandos y helper para obtener el equipo opuesto.
-- `Movimiento.ts`: contrato abstracto de movimientos y metadatos de resolución.
-- `Pieza.ts`: clase base de todas las piezas con tipo, equipo y clonación.
-- `Posicion.ts`: utilidades para trabajar con coordenadas y notación algebraica.
-- `Tablero.ts`: representa el estado de las casillas y operaciones de consulta/movimiento.
-- `index.ts`: barrel file para importar el núcleo con una sola ruta.
+- `Team.ts`: team enum and helper to retrieve the opposite team.
+- `Move.ts`: abstract contract that encapsulates move validation, execution, and rollback metadata.
+- `Piece.ts`: base class for every piece, storing team, type, cloning, and move generation hooks.
+- `Position.ts`: algebraic/coordinate helpers to reason about squares on the board.
+- `Board.ts`: board state with lookups, movement, cloning, and occupancy helpers.
+- `index.ts`: barrel file to import the core module with a single path.
