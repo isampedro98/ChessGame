@@ -15,7 +15,7 @@ const TAMANIO_CASILLA = 1;
 const ALTURA_PIEZA = 0.8;
 
 const crearMaterialCasilla = () => {
-  const colorClaro = new THREE.Color('#a7b0c2');
+  const colorClaro = new THREE.Color('#d7dde8');
   const colorOscuro = new THREE.Color('#3a4253');
   return { colorClaro, colorOscuro };
 };
@@ -30,6 +30,8 @@ const crearTablero = () => {
       const esOscura = (fila + columna) % 2 === 1;
       const material = new THREE.MeshStandardMaterial({
         color: esOscura ? colorOscuro : colorClaro,
+        roughness: 0.4,
+        metalness: 0.1,
       });
       const casilla = new THREE.Mesh(geometria, material);
       casilla.position.set(
@@ -41,14 +43,46 @@ const crearTablero = () => {
     }
   }
 
-  const base = new THREE.Mesh(
-    new THREE.BoxGeometry(8.5, 0.2, 8.5),
-    new THREE.MeshStandardMaterial({ color: '#1f2533' }),
+  const borde = new THREE.Mesh(
+    new THREE.BoxGeometry(8.6, 0.2, 8.6),
+    new THREE.MeshStandardMaterial({
+      color: '#2a303d',
+      roughness: 0.6,
+      metalness: 0.05,
+    }),
   );
-  base.position.y = -0.1;
-  grupo.add(base);
+  borde.position.y = -0.1;
+  grupo.add(borde);
 
   return grupo;
+};
+
+const crearMesa = () => {
+  const tableroBase = new THREE.Mesh(
+    new THREE.BoxGeometry(10, 0.25, 10),
+    new THREE.MeshStandardMaterial({
+      color: '#8b5a2b',
+      roughness: 0.7,
+      metalness: 0.05,
+      emissive: '#2e1d0f',
+      emissiveIntensity: 0.08,
+    }),
+  );
+  tableroBase.position.y = -0.25;
+
+  const tableroBisel = new THREE.Mesh(
+    new THREE.BoxGeometry(10.4, 0.05, 10.4),
+    new THREE.MeshStandardMaterial({
+      color: '#a4723f',
+      roughness: 0.5,
+      metalness: 0.08,
+    }),
+  );
+  tableroBisel.position.y = -0.35;
+
+  const mesa = new THREE.Group();
+  mesa.add(tableroBase, tableroBisel);
+  return mesa;
 };
 
 const crearLathe = (perfil: Array<[number, number]>) =>
@@ -124,8 +158,8 @@ const cruzHorizontal = new THREE.BoxGeometry(0.26, 0.08, 0.08);
 const crearMaterialPieza = (equipo: 'BLANCO' | 'NEGRO') =>
   new THREE.MeshStandardMaterial({
     color: equipo === 'BLANCO' ? '#f8f8f8' : '#2f3542',
-    metalness: 0.35,
-    roughness: 0.55,
+    metalness: 0.3,
+    roughness: 0.4,
   });
 
 const crearMalla = (geometria: THREE.BufferGeometry, material: THREE.Material) => {
@@ -306,30 +340,59 @@ export function ChessScene({ piezasIniciales }: ChessSceneProps) {
     const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, antialias: true });
     renderer.setSize(canvasRef.current.clientWidth, canvasRef.current.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#101321');
+    scene.background = new THREE.Color('#161923');
 
     const camera = new THREE.PerspectiveCamera(
-      35,
+      42,
       canvasRef.current.clientWidth / canvasRef.current.clientHeight,
       0.1,
       100,
     );
-    camera.position.set(6, 8, 8);
+    camera.position.set(6, 9, 9);
     camera.lookAt(0, 0, 0);
 
-    const ambient = new THREE.AmbientLight('#d9e1ff', 0.6);
-    const dirLight = new THREE.DirectionalLight('#ffffff', 0.8);
-    dirLight.position.set(5, 10, 7);
+    const ambient = new THREE.AmbientLight('#dfe7ff', 0.4);
+    const hemi = new THREE.HemisphereLight('#f4f7ff', '#1a1f2b', 0.55);
 
-    scene.add(ambient, dirLight);
+    const dirLight = new THREE.DirectionalLight('#ffffff', 0.85);
+    dirLight.position.set(6, 12, 6);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(2048, 2048);
+    dirLight.shadow.camera.near = 1;
+    dirLight.shadow.camera.far = 30;
+
+    const warmLight = new THREE.SpotLight('#f9d8a2', 0.5, 20, Math.PI / 6, 0.4, 1);
+    warmLight.position.set(-7, 8, -5);
+    warmLight.target.position.set(0, 0, 0);
+    warmLight.castShadow = true;
+
+    scene.add(ambient, hemi, dirLight, warmLight, warmLight.target);
+
+    const mesa = crearMesa();
+    mesa.traverse((objeto) => {
+      if (objeto instanceof THREE.Mesh) {
+        objeto.receiveShadow = true;
+      }
+    });
+    scene.add(mesa);
 
     const tablero = crearTablero();
+    tablero.traverse((objeto) => {
+      if (objeto instanceof THREE.Mesh) {
+        objeto.castShadow = true;
+        objeto.receiveShadow = true;
+      }
+    });
     scene.add(tablero);
 
     const piezas = crearPiezasIniciales(piezasIniciales);
     piezas.forEach((pieza) => {
+      pieza.castShadow = true;
+      pieza.receiveShadow = true;
       scene.add(pieza);
       piezasMap.set(pieza.name, pieza);
     });
