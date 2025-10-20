@@ -1,4 +1,5 @@
-﻿import { useEffect, useRef } from 'react';
+﻿'use client';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { PieceType, Team } from '@/domain/chess';
 
@@ -133,7 +134,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
         ...pieceObjects,
         ...markerObjects,
       ];
-      const hits = raycaster.intersectObjects(targets, true);
+      const hits = raycaster.intersectObjects(targets, true);\n      if (process.env.NODE_ENV !== 'production') {\n        console.log('[3D Click] start', { x: ev.clientX, y: ev.clientY, dx, dy, hits: hits.length, targets: targets.length });\n      }
       if (hits.length > 0) {
         const hit = hits[0].object as THREE.Object3D;
         // Prefer exact indices if present (board cells or markers)
@@ -322,5 +323,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 		/>
 	);
 }
+
+
 
 
