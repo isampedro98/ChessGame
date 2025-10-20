@@ -31,17 +31,18 @@ Visit http://localhost:3000 to explore the UI, play through moves, and see the s
 - Si se despliega en GitHub Pages, `basePath` se ajusta automáticamente desde `GITHUB_REPOSITORY`.
 
 ## CI/CD (GitHub Actions)
-Este repositorio incluye un workflow para build y deploy automático a GitHub Pages.
+Se usa un único workflow para lint + build + deploy a GitHub Pages.
 
 - Trigger: `push` a `main` y ejecución manual (`workflow_dispatch`).
-- Pasos: `checkout` → `setup-node@20` (cache npm) → `npm ci` → `npm run lint` → `npm run build` → `configure-pages` → `upload-pages-artifact` (desde `chessgame/out`) → `deploy-pages`.
+- Pasos: `checkout` → `setup-node@20` (cache npm) → cache de `.next` → `npm ci` → `npm run lint` → `npm run build` → `configure-pages` → `upload-pages-artifact` (desde `chessgame/out`) → `deploy-pages`.
+- Concurrency: evita despliegues superpuestos (`cancel-in-progress: true`).
 - Permisos: `pages: write` e `id-token: write` para publicar en Pages.
 
 Cómo activarlo:
 - En GitHub, ir a `Settings > Pages` y seleccionar `Source: GitHub Actions`.
 - Confirmar que la rama por defecto es `main` y que los secrets no son necesarios (build estático).
 
-Ubicación del workflow: `.github/workflows/deploy.yml`.
+Ubicación del workflow: `.github/workflows/nextjs.yml`.
 
 ## Project Layout
 ```
