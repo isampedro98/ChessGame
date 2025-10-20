@@ -44,6 +44,10 @@ Cómo activarlo:
 
 Ubicación del workflow: `.github/workflows/nextjs.yml`.
 
+### Nota sobre `npm ci` y lockfile
+- El pipeline usa `npm ci` para instalaciones reproducibles. Si agregás dependencias o devDependencies, ejecutá `npm install` localmente y commiteá el `package-lock.json` actualizado.
+- Si `package.json` cambia pero el lockfile no, `npm ci` falla con `EUSAGE` y mensajes de "Missing ... from lock file".
+
 ## Project Layout
 ```
 chessgame/
