@@ -7,10 +7,13 @@ export const createSquareMaterial = () => {
 };
 
 export const createPieceMaterial = (team: 'WHITE' | 'BLACK') =>
-    new THREE.MeshStandardMaterial({
-        color: team === 'WHITE' ? '#f8f8f8' : '#2f3542',
-        metalness: 0.3,
-        roughness: 0.4,
+    new THREE.MeshPhysicalMaterial({
+        color: team === 'WHITE' ? '#f1f1f4' : '#2f3542',
+        metalness: 0.35,
+        roughness: 0.35,
+        clearcoat: 0.5,
+        clearcoatRoughness: 0.4,
+        sheen: 0.2,
     });
 
 export const tableBaseMaterial = new THREE.MeshStandardMaterial({
