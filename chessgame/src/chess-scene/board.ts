@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { SQUARE_SIZE } from './constants';
+import { SQUARE_SIZE, BOARD_THICKNESS } from './constants';
 import { createSquareMaterial } from './materials';
 
 export const createBoard = () => {
     const group = new THREE.Group();
-    const cellGeometry = new THREE.BoxGeometry(SQUARE_SIZE, 0.05, SQUARE_SIZE);
+    const cellGeometry = new THREE.BoxGeometry(SQUARE_SIZE, BOARD_THICKNESS, SQUARE_SIZE);
     const { lightColor, darkColor } = createSquareMaterial();
 
     for (let row = 0; row < 8; row += 1) {
