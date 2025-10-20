@@ -5,7 +5,7 @@ import {
     knightBaseLower, knightBaseUpper, knightBody, knightHead,
     knightSnout, knightEar, crownSphere, regalSphere, crossVertical, crossHorizontal
 } from './geometries';
-import { PIECE_HEIGHT, SQUARE_SIZE } from './constants';
+import { BOARD_TOP_Y, SQUARE_SIZE } from './constants';
 
 export const createMesh = (geometry: THREE.BufferGeometry, material: THREE.Material) => {
     const mesh = new THREE.Mesh(geometry, material);
@@ -17,7 +17,7 @@ export const createMesh = (geometry: THREE.BufferGeometry, material: THREE.Mater
 export const positionPiece = (obj: THREE.Object3D, row: number, col: number) => {
     obj.position.set(
         (col - 3.5) * SQUARE_SIZE,
-        PIECE_HEIGHT / 2,
+        BOARD_TOP_Y + 0.01,
         (row - 3.5) * SQUARE_SIZE,
     );
 };

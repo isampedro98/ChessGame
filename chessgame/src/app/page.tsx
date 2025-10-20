@@ -26,6 +26,13 @@ export default function Home(): JSX.Element {
 	} = useChessUI(game);
 	const { t } = useTranslation();
 
+	const handlePickSquare = (row: number, column: number) => {
+		const square = squares.find((s) => s.position.row === row && s.position.column === column);
+		if (square) {
+			onSquareClick(square);
+		}
+	};
+
 	return (
 		<div className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
 			<main className="mx-auto flex w-full max-w-6xl flex-col gap-12">
@@ -56,7 +63,7 @@ export default function Home(): JSX.Element {
 					<div className="space-y-4">
 						<h2 className="text-lg font-semibold">{t('scene.title')}</h2>
 						<div className="flex h-[420px] w-full items-center justify-center overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
-							<ChessScene initialPieces={scenePieces} />
+							<ChessScene initialPieces={scenePieces} currentTurn={currentTurn} onPickSquare={handlePickSquare} />
 						</div>
 						<div className="space-y-4">
 							<InfoPanel

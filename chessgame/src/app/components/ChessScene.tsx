@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { PieceType } from '@/domain/chess';
+import { PieceType, Team } from '@/domain/chess';
 
 import {
 	createRenderer,
@@ -19,6 +19,7 @@ import {
 	applyStudioEnvironment,
 } from '@/chess-scene';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { SQUARE_SIZE } from '@/chess-scene';
 
 interface ChessSceneProps {
 	initialPieces: Array<{
@@ -27,6 +28,8 @@ interface ChessSceneProps {
 		team: 'WHITE' | 'BLACK';
 		position: { row: number; column: number };
 	}>;
+  currentTurn: Team;
+  onPickSquare?: (row: number, column: number) => void;
 }
 
 const factoryByType: Record<PieceType, (m: THREE.Material) => THREE.Object3D> =
@@ -39,7 +42,7 @@ const factoryByType: Record<PieceType, (m: THREE.Material) => THREE.Object3D> =
 		[PieceType.King]: createKing,
 	};
 
-export default function ChessScene({ initialPieces }: ChessSceneProps) {
+export default function ChessScene({ initialPieces, currentTurn, onPickSquare }: ChessSceneProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 	const sceneRef = useRef<THREE.Scene | null>(null);
@@ -47,6 +50,9 @@ export default function ChessScene({ initialPieces }: ChessSceneProps) {
 	const piecesRef = useRef<Map<string, THREE.Object3D>>(new Map());
 	const controlsRef = useRef<OrbitControls | null>(null);
 	const materialsRef = useRef<Map<'WHITE' | 'BLACK', THREE.Material> | null>(null);
+  const boardSquaresRef = useRef<THREE.Object3D[]>([]);
+  const raycasterRef = useRef<THREE.Raycaster | null>(null);
+  const mouseRef = useRef<THREE.Vector2 | null>(null);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -58,7 +64,10 @@ export default function ChessScene({ initialPieces }: ChessSceneProps) {
 		const { ambient, hemi, dirLight, warmLight } = createLights();
 		scene.add(ambient, hemi, dirLight, warmLight, warmLight.target);
 
-		scene.add(createTable(), createBoard());
+		scene.add(createTable());
+		const board = createBoard();
+		scene.add(board);
+		boardSquaresRef.current = board.children.slice();
 
 		materialsRef.current = new Map<'WHITE' | 'BLACK', THREE.Material>([
 			['WHITE', createPieceMaterial('WHITE')],
@@ -85,6 +94,28 @@ export default function ChessScene({ initialPieces }: ChessSceneProps) {
 
 		window.addEventListener('resize', onResize);
 
+		const raycaster = new THREE.Raycaster();
+		raycasterRef.current = raycaster;
+		mouseRef.current = new THREE.Vector2();
+
+		const onClick = (ev: MouseEvent) => {
+			if (!cameraRef.current || !rendererRef.current || !onPickSquare) return;
+			const rect = canvas.getBoundingClientRect();
+			const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+			const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+			mouseRef.current!.set(x, y);
+			raycaster.setFromCamera(mouseRef.current!, cameraRef.current);
+			const hits = raycaster.intersectObjects(boardSquaresRef.current, false);
+			if (hits.length > 0) {
+				const hit = hits[0].object;
+				const { x: px, z: pz } = hit.position;
+				const col = Math.round(px / SQUARE_SIZE + 3.5);
+				const row = Math.round(pz / SQUARE_SIZE + 3.5);
+				onPickSquare(row, col);
+			}
+		};
+		canvas.addEventListener('click', onClick);
+
 		let raf = 0;
 		const animate = () => {
 			if (!rendererRef.current || !sceneRef.current || !cameraRef.current)
@@ -101,8 +132,23 @@ export default function ChessScene({ initialPieces }: ChessSceneProps) {
 			piecesRef.current.clear();
 			controls.dispose();
 			renderer.dispose();
+			canvas.removeEventListener('click', onClick);
 		};
 	}, []);
+
+  // Orientar la cámara según el turno
+  useEffect(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!camera || !controls) return;
+    if (currentTurn === Team.White) {
+      camera.position.set(6, 9, 9);
+    } else {
+      camera.position.set(-6, 9, -9);
+    }
+    controls.target.set(0, 0.3, 0);
+    controls.update();
+  }, [currentTurn]);
 
 	useEffect(() => {
 		const scene = sceneRef.current;
