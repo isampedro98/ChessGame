@@ -20,7 +20,6 @@ import {
 	applyStudioEnvironment,
 } from '@/chess-scene';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SQUARE_SIZE } from '@/chess-scene';
 import { updateMarkers } from '@/chess-scene/markers';
 import { deriveBoardCoordsFromObject } from '@/chess-scene/picking';
 
@@ -160,11 +159,12 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 			raf = requestAnimationFrame(animate);
 		};
 		animate();
-
+		const current = piecesRef.current;
+		
 		return () => {
 			window.removeEventListener('resize', onResize);
 			cancelAnimationFrame(raf);
-			piecesRef.current.clear();
+			current.clear();
 			controls.dispose();
 			renderer.dispose();
       canvas.removeEventListener('pointerdown', onPointerDown);
