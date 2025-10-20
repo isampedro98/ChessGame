@@ -20,7 +20,9 @@ import {
 	applyStudioEnvironment,
 } from '@/chess-scene';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SQUARE_SIZE, BOARD_TOP_Y } from '@/chess-scene';
+import { SQUARE_SIZE } from '@/chess-scene';
+import { updateMarkers } from '@/chess-scene/markers';
+import { deriveBoardCoordsFromObject } from '@/chess-scene/picking';
 
 interface ChessSceneProps {
 	initialPieces: Array<{
@@ -138,59 +140,10 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
         ...pieceObjects,
         ...markerObjects,
       ];
-      const hits = raycaster.intersectObjects(targets, true);      
-	  if (process.env.NODE_ENV !== 'production') {        
-		console.log('[3D Click] start', { x: ev.clientX, y: ev.clientY, dx, dy, hits: hits.length, targets: targets.length });
-		 }
+      const hits = raycaster.intersectObjects(targets, true);
       if (hits.length > 0) {
         const hit = hits[0].object as THREE.Object3D;
-        // Prefer exact indices if present (board cells or markers)
-        // @ts-expect-error -- userData is dynamic
-        const ud = (hit as any).userData || {};
-        let row: number;
-        let col: number;
-        if (typeof ud.row === 'number' && typeof ud.col === 'number') {
-          row = ud.row;
-          col = ud.col;
-        } else {
-          const world = new THREE.Vector3();
-          hit.getWorldPosition(world);
-          col = Math.round(world.x / SQUARE_SIZE + 3.5);
-          row = Math.round(world.z / SQUARE_SIZE + 3.5);
-          if (process.env.NODE_ENV !== 'production') {
-            // Debug info: world coords and nearest squares
-            const xw = world.x;
-            const zw = world.z;
-            const candidates: Array<{ key: string; row: number; col: number; dx: number; dz: number; d: number }> = [];
-            const cf = Math.floor(xw / SQUARE_SIZE + 3.5);
-            const cc = Math.ceil(xw / SQUARE_SIZE + 3.5);
-            const rf = Math.floor(zw / SQUARE_SIZE + 3.5);
-            const rc = Math.ceil(zw / SQUARE_SIZE + 3.5);
-            const combos = [
-              [rf, cf], [rf, cc], [rc, cf], [rc, cc],
-            ];
-            combos.forEach(([r, c]) => {
-              const cx = (c - 3.5) * SQUARE_SIZE;
-              const cz = (r - 3.5) * SQUARE_SIZE;
-              const dx = Math.abs(xw - cx);
-              const dz = Math.abs(zw - cz);
-              const d = Math.hypot(dx, dz);
-              candidates.push({ key: `${r},${c}`, row: r, col: c, dx, dz, d });
-            });
-            candidates.sort((a, b) => a.d - b.d);
-            const key = `${row},${col}`;
-            // eslint-disable-next-line no-console
-            console.log('[3D Move Debug] click', {
-              hit: { name: hit.name, ud },
-              world: { x: xw, z: zw },
-              derived: { row, col, key, inAllowed: allowedKeysRef.current.has(key) },
-              selectedSquareKey: selectedKeyRef.current,
-              allowedCount: allowedKeysRef.current.size,
-              nearest: candidates.slice(0, 4),
-            });
-          }
-        }
-        console.log('[3D -> UI] onPickSquare()', { row, col, originKey: selectedKeyRef.current });
+        const { row, col } = deriveBoardCoordsFromObject(hit);
         const fn = onPickSquareRef.current;
         if (fn) fn(row, col, selectedKeyRef.current ?? undefined);
       }
@@ -246,7 +199,6 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 	useEffect(() => {
 		const scene = sceneRef.current;
 		if (!scene) return;
-
 		let root = markersRootRef.current;
 		if (!root) {
 			root = new THREE.Group();
@@ -254,54 +206,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 			scene.add(root);
 			markersRootRef.current = root;
 		}
-
-		// limpiar
-		while (root.children.length > 0) {
-			const c = root.children.pop();
-			if (c) root.remove(c);
-		}
-
-		const toWorld = (key: string) => {
-			const [rowStr, colStr] = key.split(',');
-			const row = Number(rowStr);
-			const col = Number(colStr);
-			return new THREE.Vector3(
-				(col - 3.5) * SQUARE_SIZE,
-				BOARD_TOP_Y + 0.02,
-				(row - 3.5) * SQUARE_SIZE,
-			);
-		};
-
-    if (selectedSquareKey) {
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(0.34, 0.46, 32),
-        new THREE.MeshBasicMaterial({ color: '#34d399', transparent: true, opacity: 0.9, side: THREE.DoubleSide })
-      );
-      ring.rotation.x = -Math.PI / 2;
-      const wp = toWorld(selectedSquareKey);
-      ring.position.copy(wp);
-      // Attach indices for precise picking
-      const [r, c] = selectedSquareKey.split(',').map((v) => Number(v));
-      // @ts-expect-error dynamic
-      ring.userData.row = r; // @ts-expect-error dynamic
-      ring.userData.col = c;
-      root.add(ring);
-    }
-
-    availableDestinations.forEach((key) => {
-      const dot = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.08, 0.08, 0.02, 24),
-        new THREE.MeshBasicMaterial({ color: '#a7f3d0', transparent: true, opacity: 0.9 })
-      );
-      dot.rotation.x = -Math.PI / 2;
-      const wp = toWorld(key);
-      dot.position.copy(wp);
-      const [r, c] = key.split(',').map((v) => Number(v));
-      // @ts-expect-error dynamic
-      dot.userData.row = r; // @ts-expect-error dynamic
-      dot.userData.col = c;
-      root.add(dot);
-    });
+		updateMarkers(root, selectedSquareKey, availableDestinations);
 	}, [selectedSquareKey, availableDestinations]);
 
 	useEffect(() => {

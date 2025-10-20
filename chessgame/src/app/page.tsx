@@ -6,7 +6,7 @@ import { BoardGrid } from '@/app/components/BoardGrid';
 import { HistoryPanel } from '@/app/components/HistoryPanel';
 import { InfoPanel } from '@/app/components/InfoPanel';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
-import { useChessUI } from '@/app/hooks/useChessUI';
+import { SquareInfo, useChessUI } from '@/app/hooks/useChessUI';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import ChessScene from '@/app/components/ChessScene';
 import { createStandardGame } from '@/domain/chess';
@@ -34,10 +34,9 @@ export default function Home(): JSX.Element {
 	const destKey = `${row},${column}`;
 	const makeSquare = (r: number, c: number) => {
 		const pos = Position.fromCoordinates(r, c);
-		return { id: pos.toAlgebraic(), position: pos, isDark: (r + c) % 2 === 1 } as any;
+		return { id: pos.toAlgebraic(), position: pos, isDark: (r + c) % 2 === 1 } as SquareInfo;
 	};
 	const destSquare = squaresByKey.get(destKey) ?? makeSquare(row, column);
-	console.log('[UI before 3D move]', { key: destKey, selectedSquareKey, allowed: availableDestinations.has(destKey), allowedCount: availableDestinations.size, originKey });
 	if (!selectedSquareKey && originKey && originKey !== destKey) {
 		const [or, oc] = originKey.split(',').map((v) => Number(v));
 		const originSquare = squaresByKey.get(originKey) ?? makeSquare(or, oc);
