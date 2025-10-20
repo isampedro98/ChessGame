@@ -56,6 +56,8 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const mouseRef = useRef<THREE.Vector2 | null>(null);
   const markersRootRef = useRef<THREE.Group | null>(null);
+  const isOrbitingRef = useRef(false);
+  const markersRootRef = useRef<THREE.Group | null>(null);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -77,11 +79,13 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 			['BLACK', createPieceMaterial('BLACK')],
 		]);
 
-		const controls = new OrbitControls(camera, canvas);
-		controls.enableDamping = true;
-		controls.target.set(0, 0.3, 0);
-		controls.update();
-		controlsRef.current = controls;
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.3, 0);
+    controls.update();
+    controls.addEventListener('start', () => (isOrbitingRef.current = true));
+    controls.addEventListener('end', () => (isOrbitingRef.current = false));
+    controlsRef.current = controls;
 
 		rendererRef.current = renderer;
 		sceneRef.current = scene;
@@ -97,31 +101,40 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 
 		window.addEventListener('resize', onResize);
 
-		const raycaster = new THREE.Raycaster();
-		raycasterRef.current = raycaster;
-		mouseRef.current = new THREE.Vector2();
+    const raycaster = new THREE.Raycaster();
+    raycasterRef.current = raycaster;
+    mouseRef.current = new THREE.Vector2();
 
-		const onClick = (ev: MouseEvent) => {
-			if (!cameraRef.current || !rendererRef.current || !onPickSquare) return;
-			const rect = canvas.getBoundingClientRect();
-			const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-			const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
-			mouseRef.current!.set(x, y);
-			raycaster.setFromCamera(mouseRef.current!, cameraRef.current);
-			const pieceObjects = Array.from(piecesRef.current.values());
-			const hits = raycaster.intersectObjects([
-				...boardSquaresRef.current,
-				...pieceObjects,
-			], false);
-			if (hits.length > 0) {
-				const hit = hits[0].object as THREE.Object3D;
-				const world = new THREE.Vector3();
-				hit.getWorldPosition(world);
-				const col = Math.round(world.x / SQUARE_SIZE + 3.5);
-				const row = Math.round(world.z / SQUARE_SIZE + 3.5);
-				onPickSquare(row, col);
-			}
-		};
+    // Root for selection/destination markers
+    const markersRoot = new THREE.Group();
+    markersRoot.name = 'markers-root';
+    scene.add(markersRoot);
+    markersRootRef.current = markersRoot;
+
+    const onClick = (ev: MouseEvent) => {
+      if (!cameraRef.current || !rendererRef.current || !onPickSquare) return;
+      if (isOrbitingRef.current) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+      mouseRef.current!.set(x, y);
+      raycaster.setFromCamera(mouseRef.current!, cameraRef.current);
+      const pieceObjects = Array.from(piecesRef.current.values());
+      const markerObjects = markersRootRef.current ? markersRootRef.current.children : [];
+      const hits = raycaster.intersectObjects([
+        ...boardSquaresRef.current,
+        ...pieceObjects,
+        ...markerObjects,
+      ], false);
+      if (hits.length > 0) {
+        const hit = hits[0].object as THREE.Object3D;
+        const world = new THREE.Vector3();
+        hit.getWorldPosition(world);
+        const col = Math.round(world.x / SQUARE_SIZE + 3.5);
+        const row = Math.round(world.z / SQUARE_SIZE + 3.5);
+        onPickSquare(row, col);
+      }
+    };
 		canvas.addEventListener('click', onClick);
 
 		let raf = 0;
@@ -149,10 +162,11 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
     const camera = cameraRef.current;
     const controls = controlsRef.current;
     if (!camera || !controls) return;
+    // Vista correcta: Blancas miran desde z negativo; Negras desde z positivo
     if (currentTurn === Team.White) {
-      camera.position.set(6, 9, 9);
+      camera.position.set(6, 9, -9);
     } else {
-      camera.position.set(-6, 9, -9);
+      camera.position.set(-6, 9, 9);
     }
     controls.target.set(0, 0.3, 0);
     controls.update();
