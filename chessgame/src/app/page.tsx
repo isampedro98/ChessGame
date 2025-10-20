@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { JSX, useState } from 'react';
 
@@ -10,6 +10,7 @@ import { useChessUI } from '@/app/hooks/useChessUI';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import ChessScene from '@/app/components/ChessScene';
 import { createStandardGame } from '@/domain/chess';
+import { Position } from '@/domain/chess';
 
 export default function Home(): JSX.Element {
 	const [game] = useState(() => createStandardGame());
@@ -24,16 +25,29 @@ export default function Home(): JSX.Element {
 		selectedSquareKey,
 		currentTurn,
 	} = useChessUI(game);
-	const { t } = useTranslation();
+		const { t } = useTranslation();
 
-	const handlePickSquare = (row: number, column: number) => {
-		const square = squares.find((s) => s.position.row === row && s.position.column === column);
-		if (square) {
-			onSquareClick(square);
-		}
+	// Stable lookup by board key for 3D clicks
+	const squaresByKey = new Map(squares.map((s) => [s.position.toKey(), s]));
+
+	const handlePickSquare = (row: number, column: number, originKey?: string) => {
+	const destKey = `${row},${column}`;
+	const makeSquare = (r: number, c: number) => {
+		const pos = Position.fromCoordinates(r, c);
+		return { id: pos.toAlgebraic(), position: pos, isDark: (r + c) % 2 === 1 } as any;
 	};
-
-	return (
+	const destSquare = squaresByKey.get(destKey) ?? makeSquare(row, column);
+	console.log('[UI before 3D move]', { key: destKey, selectedSquareKey, allowed: availableDestinations.has(destKey), allowedCount: availableDestinations.size, originKey });
+	if (!selectedSquareKey && originKey && originKey !== destKey) {
+		const [or, oc] = originKey.split(',').map((v) => Number(v));
+		const originSquare = squaresByKey.get(originKey) ?? makeSquare(or, oc);
+		onSquareClick(originSquare);
+		queueMicrotask(() => onSquareClick(destSquare));
+		return;
+	}
+	onSquareClick(destSquare);
+};
+return (
 		<div className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
 			<main className="mx-auto flex w-full max-w-6xl flex-col gap-12">
 				<header className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -89,3 +103,18 @@ export default function Home(): JSX.Element {
 		</div>
 	);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

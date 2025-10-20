@@ -30,7 +30,7 @@ interface ChessSceneProps {
 		position: { row: number; column: number };
 	}>;
   currentTurn: Team;
-  onPickSquare?: (row: number, column: number) => void;
+  onPickSquare?: (row: number, column: number, originKey?: string) => void;
   selectedSquareKey?: string | null;
   availableDestinations?: Set<string>;
 }
@@ -59,6 +59,10 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
   const markersRootRef = useRef<THREE.Group | null>(null);
   const isOrbitingRef = useRef(false);
   const lastPointerDownRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Keep latest props/state snapshots to avoid stale closures inside handlers
+  const onPickSquareRef = useRef<((row: number, column: number, originKey?: string) => void) | null>(null);
+  const allowedKeysRef = useRef<Set<string>>(new Set());
+  const selectedKeyRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -117,7 +121,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
     };
 
     const onClick = (ev: MouseEvent) => {
-      if (!cameraRef.current || !rendererRef.current || !onPickSquare) return;
+      if (!cameraRef.current || !rendererRef.current) return;
       // Ignore if drag distance is significant (orbiting/pan)
       const dx = ev.clientX - lastPointerDownRef.current.x;
       const dy = ev.clientY - lastPointerDownRef.current.y;
@@ -134,7 +138,10 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
         ...pieceObjects,
         ...markerObjects,
       ];
-      const hits = raycaster.intersectObjects(targets, true);\n      if (process.env.NODE_ENV !== 'production') {\n        console.log('[3D Click] start', { x: ev.clientX, y: ev.clientY, dx, dy, hits: hits.length, targets: targets.length });\n      }
+      const hits = raycaster.intersectObjects(targets, true);      
+	  if (process.env.NODE_ENV !== 'production') {        
+		console.log('[3D Click] start', { x: ev.clientX, y: ev.clientY, dx, dy, hits: hits.length, targets: targets.length });
+		 }
       if (hits.length > 0) {
         const hit = hits[0].object as THREE.Object3D;
         // Prefer exact indices if present (board cells or markers)
@@ -173,17 +180,19 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
             candidates.sort((a, b) => a.d - b.d);
             const key = `${row},${col}`;
             // eslint-disable-next-line no-console
-            console.debug('[3D Move Debug] click', {
+            console.log('[3D Move Debug] click', {
               hit: { name: hit.name, ud },
               world: { x: xw, z: zw },
-              derived: { row, col, key, inAllowed: availableDestinations.has(key) },
-              selectedSquareKey,
-              allowedCount: availableDestinations.size,
+              derived: { row, col, key, inAllowed: allowedKeysRef.current.has(key) },
+              selectedSquareKey: selectedKeyRef.current,
+              allowedCount: allowedKeysRef.current.size,
               nearest: candidates.slice(0, 4),
             });
           }
         }
-        onPickSquare(row, col);
+        console.log('[3D -> UI] onPickSquare()', { row, col, originKey: selectedKeyRef.current });
+        const fn = onPickSquareRef.current;
+        if (fn) fn(row, col, selectedKeyRef.current ?? undefined);
       }
     };
     canvas.addEventListener('pointerdown', onPointerDown);
@@ -224,6 +233,14 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
     controls.target.set(0, 0.3, 0);
     controls.update();
   }, [currentTurn]);
+
+  // Sync changing props into refs for handlers
+  useEffect(() => { onPickSquareRef.current = onPickSquare ?? null; }, [onPickSquare]);
+  useEffect(() => { allowedKeysRef.current = availableDestinations ?? new Set(); }, [availableDestinations]);
+  useEffect(() => { selectedKeyRef.current = selectedSquareKey ?? null; }, [selectedSquareKey]);
+
+
+
 
 	// Marcadores de seleccion y destinos permitidos
 	useEffect(() => {
@@ -323,6 +340,21 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 		/>
 	);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
