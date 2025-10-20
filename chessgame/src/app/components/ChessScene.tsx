@@ -128,11 +128,12 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
       raycaster.setFromCamera(mouseRef.current!, cameraRef.current);
       const pieceObjects = Array.from(piecesRef.current.values());
       const markerObjects = markersRootRef.current ? markersRootRef.current.children : [];
-      const hits = raycaster.intersectObjects([
+      const targets = [
         ...boardSquaresRef.current,
         ...pieceObjects,
         ...markerObjects,
-      ], true);
+      ];
+      const hits = raycaster.intersectObjects(targets, true);
       if (hits.length > 0) {
         const hit = hits[0].object as THREE.Object3D;
         // Prefer exact indices if present (board cells or markers)
@@ -148,6 +149,38 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
           hit.getWorldPosition(world);
           col = Math.round(world.x / SQUARE_SIZE + 3.5);
           row = Math.round(world.z / SQUARE_SIZE + 3.5);
+          if (process.env.NODE_ENV !== 'production') {
+            // Debug info: world coords and nearest squares
+            const xw = world.x;
+            const zw = world.z;
+            const candidates: Array<{ key: string; row: number; col: number; dx: number; dz: number; d: number }> = [];
+            const cf = Math.floor(xw / SQUARE_SIZE + 3.5);
+            const cc = Math.ceil(xw / SQUARE_SIZE + 3.5);
+            const rf = Math.floor(zw / SQUARE_SIZE + 3.5);
+            const rc = Math.ceil(zw / SQUARE_SIZE + 3.5);
+            const combos = [
+              [rf, cf], [rf, cc], [rc, cf], [rc, cc],
+            ];
+            combos.forEach(([r, c]) => {
+              const cx = (c - 3.5) * SQUARE_SIZE;
+              const cz = (r - 3.5) * SQUARE_SIZE;
+              const dx = Math.abs(xw - cx);
+              const dz = Math.abs(zw - cz);
+              const d = Math.hypot(dx, dz);
+              candidates.push({ key: `${r},${c}`, row: r, col: c, dx, dz, d });
+            });
+            candidates.sort((a, b) => a.d - b.d);
+            const key = `${row},${col}`;
+            // eslint-disable-next-line no-console
+            console.debug('[3D Move Debug] click', {
+              hit: { name: hit.name, ud },
+              world: { x: xw, z: zw },
+              derived: { row, col, key, inAllowed: availableDestinations.has(key) },
+              selectedSquareKey,
+              allowedCount: availableDestinations.size,
+              nearest: candidates.slice(0, 4),
+            });
+          }
         }
         onPickSquare(row, col);
       }
