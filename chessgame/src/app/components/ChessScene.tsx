@@ -105,7 +105,11 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare }:
 			const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
 			mouseRef.current!.set(x, y);
 			raycaster.setFromCamera(mouseRef.current!, cameraRef.current);
-			const hits = raycaster.intersectObjects(boardSquaresRef.current, false);
+			const pieceObjects = Array.from(piecesRef.current.values());
+			const hits = raycaster.intersectObjects([
+				...boardSquaresRef.current,
+				...pieceObjects,
+			], false);
 			if (hits.length > 0) {
 				const hit = hits[0].object;
 				const { x: px, z: pz } = hit.position;

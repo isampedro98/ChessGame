@@ -19,8 +19,8 @@ export const getPieceSymbol = (piece: Piece): string => {
 
 export const pieceCssClass = (piece: Piece): string =>
   piece.belongsTo(Team.White)
-    ? 'bg-white/10 text-slate-50 ring-1 ring-white/40'
-    : 'bg-slate-200 text-slate-900';
+    ? 'bg-slate-200 text-slate-900'
+    : 'bg-white/10 text-slate-50 ring-1 ring-white/40';
 
 export type MoveNote = {
   key: string;
