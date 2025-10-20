@@ -17,6 +17,10 @@ export const createBoard = () => {
             });
             const cell = new THREE.Mesh(cellGeometry, material);
             cell.position.set((col - 3.5) * SQUARE_SIZE, 0, (row - 3.5) * SQUARE_SIZE);
+            // Attach exact board indices for robust picking
+            (cell as any).userData.row = row;
+            (cell as any).userData.col = col;
+            cell.name = `cell-${row}-${col}`;
             cell.castShadow = true;
             cell.receiveShadow = true;
             group.add(cell);

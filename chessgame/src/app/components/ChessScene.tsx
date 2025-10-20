@@ -52,12 +52,11 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 	const piecesRef = useRef<Map<string, THREE.Object3D>>(new Map());
 	const controlsRef = useRef<OrbitControls | null>(null);
 	const materialsRef = useRef<Map<'WHITE' | 'BLACK', THREE.Material> | null>(null);
-  const boardSquaresRef = useRef<THREE.Object3D[]>([]);
-  const raycasterRef = useRef<THREE.Raycaster | null>(null);
-  const mouseRef = useRef<THREE.Vector2 | null>(null);
-  const markersRootRef = useRef<THREE.Group | null>(null);
-  const isOrbitingRef = useRef(false);
-  const markersRootRef = useRef<THREE.Group | null>(null);
+	const boardSquaresRef = useRef<THREE.Object3D[]>([]);
+	const raycasterRef = useRef<THREE.Raycaster | null>(null);
+	const mouseRef = useRef<THREE.Vector2 | null>(null);
+	const markersRootRef = useRef<THREE.Group | null>(null);
+	const isOrbitingRef = useRef(false); 
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -128,10 +127,20 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
       ], false);
       if (hits.length > 0) {
         const hit = hits[0].object as THREE.Object3D;
-        const world = new THREE.Vector3();
-        hit.getWorldPosition(world);
-        const col = Math.round(world.x / SQUARE_SIZE + 3.5);
-        const row = Math.round(world.z / SQUARE_SIZE + 3.5);
+        // Prefer exact indices if present (board cells or markers)
+        // @ts-expect-error -- userData is dynamic
+        const ud = (hit as any).userData || {};
+        let row: number;
+        let col: number;
+        if (typeof ud.row === 'number' && typeof ud.col === 'number') {
+          row = ud.row;
+          col = ud.col;
+        } else {
+          const world = new THREE.Vector3();
+          hit.getWorldPosition(world);
+          col = Math.round(world.x / SQUARE_SIZE + 3.5);
+          row = Math.round(world.z / SQUARE_SIZE + 3.5);
+        }
         onPickSquare(row, col);
       }
     };
@@ -202,25 +211,36 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 			);
 		};
 
-		if (selectedSquareKey) {
-			const ring = new THREE.Mesh(
-				new THREE.RingGeometry(0.34, 0.46, 32),
-				new THREE.MeshBasicMaterial({ color: '#34d399', transparent: true, opacity: 0.9, side: THREE.DoubleSide })
-			);
-			ring.rotation.x = -Math.PI / 2;
-			ring.position.copy(toWorld(selectedSquareKey));
-			root.add(ring);
-		}
+    if (selectedSquareKey) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.34, 0.46, 32),
+        new THREE.MeshBasicMaterial({ color: '#34d399', transparent: true, opacity: 0.9, side: THREE.DoubleSide })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      const wp = toWorld(selectedSquareKey);
+      ring.position.copy(wp);
+      // Attach indices for precise picking
+      const [r, c] = selectedSquareKey.split(',').map((v) => Number(v));
+      // @ts-expect-error dynamic
+      ring.userData.row = r; // @ts-expect-error dynamic
+      ring.userData.col = c;
+      root.add(ring);
+    }
 
-		availableDestinations.forEach((key) => {
-			const dot = new THREE.Mesh(
-				new THREE.CylinderGeometry(0.08, 0.08, 0.02, 24),
-				new THREE.MeshBasicMaterial({ color: '#a7f3d0', transparent: true, opacity: 0.9 })
-			);
-			dot.rotation.x = -Math.PI / 2;
-			dot.position.copy(toWorld(key));
-			root.add(dot);
-		});
+    availableDestinations.forEach((key) => {
+      const dot = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 0.02, 24),
+        new THREE.MeshBasicMaterial({ color: '#a7f3d0', transparent: true, opacity: 0.9 })
+      );
+      dot.rotation.x = -Math.PI / 2;
+      const wp = toWorld(key);
+      dot.position.copy(wp);
+      const [r, c] = key.split(',').map((v) => Number(v));
+      // @ts-expect-error dynamic
+      dot.userData.row = r; // @ts-expect-error dynamic
+      dot.userData.col = c;
+      root.add(dot);
+    });
 	}, [selectedSquareKey, availableDestinations]);
 
 	useEffect(() => {
