@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+ï»¿import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { PieceType, Team } from '@/domain/chess';
 
@@ -144,7 +144,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 		};
 	}, []);
 
-  // Orientar la cámara según el turno
+  // Orientar la camara segun el turno
   useEffect(() => {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
@@ -158,7 +158,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
     controls.update();
   }, [currentTurn]);
 
-	// Marcadores de selección y destinos permitidos
+	// Marcadores de seleccion y destinos permitidos
 	useEffect(() => {
 		const scene = sceneRef.current;
 		if (!scene) return;
@@ -245,4 +245,5 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 		/>
 	);
 }
+
 
