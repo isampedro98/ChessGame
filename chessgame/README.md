@@ -97,6 +97,10 @@ npm run lint    # Run ESLint using the project configuration
 - Accesibilidad:
   - Etiquetas ARIA en casillas del tablero y foco visible en interacciones.
 
+## Referencias y Créditos
+- Inspiración para modelado de piezas en Three.js: https://github.com/Sushant-Coder-01/chess3d
+  - Usaremos técnicas similares (perfiles lathe, grupos compuestos, coronas/merlones) y las adaptaremos al estilo del proyecto.
+
 ## Cosas a Tener en Cuenta
 - Render 3D:
   - El canvas se monta en `ChessScene.tsx` y consume builders de `@/chess-scene`.
@@ -115,10 +119,12 @@ npm run lint    # Run ESLint using the project configuration
   - Añadir movimientos especiales dedicados: `CastleMove`, `EnPassantMove`, `PromotionMove`.
   - Soporte de FEN/PGN: importar posiciones, exportar historial y partidas.
 - Escena Three.js
-  - OrbitControls para la cámara y posiciones predefinidas (overview, lateral).
+  - OrbitControls para la cámara y posiciones predefinidas (overview, lateral). [Añadido]
+  - Entorno físico (RoomEnvironment + PMREM) para mejores reflejos en materiales. [Añadido]
   - Raycasting para seleccionar piezas/casillas con el mouse directamente en 3D.
   - Animaciones de movimiento y captura (tweens) sincronizadas con el historial.
-  - Materiales y texturas avanzadas (madera, metal, PBR) y labels de coordenadas.
+  - Materiales físicos (clearcoat, sheen) y texturas avanzadas (madera, metal, PBR) y labels de coordenadas. [Parcialmente añadido]
+  - Optimización futura: `InstancedMesh` para peones y `mergeGeometries` para reducir draw calls.
 - UI/UX
   - Modo móvil y mejoras de responsividad; accesos rápidos de teclado.
   - Estado de partida guardado en `localStorage` y reinicio rápido.

@@ -16,7 +16,9 @@ import {
 	createKing,
 	createPieceMaterial,
 	positionPiece,
+	applyStudioEnvironment,
 } from '@/chess-scene';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 interface ChessSceneProps {
 	initialPieces: Array<{
@@ -43,6 +45,8 @@ export default function ChessScene({ initialPieces }: ChessSceneProps) {
 	const sceneRef = useRef<THREE.Scene | null>(null);
 	const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
 	const piecesRef = useRef<Map<string, THREE.Object3D>>(new Map());
+	const controlsRef = useRef<OrbitControls | null>(null);
+	const materialsRef = useRef<Map<'WHITE' | 'BLACK', THREE.Material> | null>(null);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -50,26 +54,22 @@ export default function ChessScene({ initialPieces }: ChessSceneProps) {
 
 		const renderer = createRenderer(canvas);
 		const { scene, camera } = createSceneAndCamera(canvas);
+		applyStudioEnvironment(renderer, scene);
 		const { ambient, hemi, dirLight, warmLight } = createLights();
 		scene.add(ambient, hemi, dirLight, warmLight, warmLight.target);
 
 		scene.add(createTable(), createBoard());
 
-		const materials = new Map<'WHITE' | 'BLACK', THREE.Material>([
+		materialsRef.current = new Map<'WHITE' | 'BLACK', THREE.Material>([
 			['WHITE', createPieceMaterial('WHITE')],
 			['BLACK', createPieceMaterial('BLACK')],
 		]);
 
-		const piecesMap = piecesRef.current;
-		initialPieces.forEach((p) => {
-			const material = materials.get(p.team)!;
-			const make = factoryByType[p.type] ?? createPawn;
-			const obj = make(material);
-			positionPiece(obj, p.position.row, p.position.column);
-			obj.name = p.id;
-			scene.add(obj);
-			piecesMap.set(p.id, obj);
-		});
+		const controls = new OrbitControls(camera, canvas);
+		controls.enableDamping = true;
+		controls.target.set(0, 0.3, 0);
+		controls.update();
+		controlsRef.current = controls;
 
 		rendererRef.current = renderer;
 		sceneRef.current = scene;
@@ -89,6 +89,7 @@ export default function ChessScene({ initialPieces }: ChessSceneProps) {
 		const animate = () => {
 			if (!rendererRef.current || !sceneRef.current || !cameraRef.current)
 				return;
+			controlsRef.current?.update();
 			rendererRef.current.render(sceneRef.current, cameraRef.current);
 			raf = requestAnimationFrame(animate);
 		};
@@ -97,9 +98,39 @@ export default function ChessScene({ initialPieces }: ChessSceneProps) {
 		return () => {
 			window.removeEventListener('resize', onResize);
 			cancelAnimationFrame(raf);
-			piecesMap.clear();
+			piecesRef.current.clear();
+			controls.dispose();
 			renderer.dispose();
 		};
+	}, []);
+
+	useEffect(() => {
+		const scene = sceneRef.current;
+		const materials = materialsRef.current;
+		if (!scene || !materials) return;
+
+		const piecesMap = piecesRef.current;
+		const remaining = new Set(piecesMap.keys());
+
+		initialPieces.forEach((p) => {
+			const material = materials.get(p.team)!;
+			let obj = piecesMap.get(p.id);
+			if (!obj) {
+				const make = factoryByType[p.type] ?? createPawn;
+				obj = make(material);
+				obj.name = p.id;
+				scene.add(obj);
+				piecesMap.set(p.id, obj);
+			}
+			positionPiece(obj, p.position.row, p.position.column);
+			remaining.delete(p.id);
+		});
+
+		remaining.forEach((id) => {
+			const obj = piecesMap.get(id);
+			if (obj) scene.remove(obj);
+			piecesMap.delete(id);
+		});
 	}, [initialPieces]);
 
 	return (

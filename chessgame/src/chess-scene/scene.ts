@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BACKGROUND_COLOR } from './constants';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 export const createRenderer = (canvas: HTMLCanvasElement) => {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -24,4 +25,10 @@ export const createSceneAndCamera = (canvas: HTMLCanvasElement) => {
     camera.lookAt(0, 0, 0);
 
     return { scene, camera };
+};
+
+export const applyStudioEnvironment = (renderer: THREE.WebGLRenderer, scene: THREE.Scene) => {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = env;
 };
