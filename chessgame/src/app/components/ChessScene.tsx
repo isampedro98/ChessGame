@@ -1,4 +1,4 @@
-ï»¿import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { PieceType, Team } from '@/domain/chess';
 
@@ -19,7 +19,7 @@ import {
 	applyStudioEnvironment,
 } from '@/chess-scene';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SQUARE_SIZE } from '@/chess-scene';
+import { SQUARE_SIZE, BOARD_TOP_Y } from '@/chess-scene';
 
 interface ChessSceneProps {
 	initialPieces: Array<{
@@ -30,6 +30,8 @@ interface ChessSceneProps {
 	}>;
   currentTurn: Team;
   onPickSquare?: (row: number, column: number) => void;
+  selectedSquareKey?: string | null;
+  availableDestinations?: Set<string>;
 }
 
 const factoryByType: Record<PieceType, (m: THREE.Material) => THREE.Object3D> =
@@ -42,7 +44,7 @@ const factoryByType: Record<PieceType, (m: THREE.Material) => THREE.Object3D> =
 		[PieceType.King]: createKing,
 	};
 
-export default function ChessScene({ initialPieces, currentTurn, onPickSquare }: ChessSceneProps) {
+export default function ChessScene({ initialPieces, currentTurn, onPickSquare, selectedSquareKey = null, availableDestinations = new Set() }: ChessSceneProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 	const sceneRef = useRef<THREE.Scene | null>(null);
@@ -53,6 +55,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare }:
   const boardSquaresRef = useRef<THREE.Object3D[]>([]);
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const mouseRef = useRef<THREE.Vector2 | null>(null);
+  const markersRootRef = useRef<THREE.Group | null>(null);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -111,10 +114,11 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare }:
 				...pieceObjects,
 			], false);
 			if (hits.length > 0) {
-				const hit = hits[0].object;
-				const { x: px, z: pz } = hit.position;
-				const col = Math.round(px / SQUARE_SIZE + 3.5);
-				const row = Math.round(pz / SQUARE_SIZE + 3.5);
+				const hit = hits[0].object as THREE.Object3D;
+				const world = new THREE.Vector3();
+				hit.getWorldPosition(world);
+				const col = Math.round(world.x / SQUARE_SIZE + 3.5);
+				const row = Math.round(world.z / SQUARE_SIZE + 3.5);
 				onPickSquare(row, col);
 			}
 		};
@@ -140,7 +144,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare }:
 		};
 	}, []);
 
-  // Orientar la cÃ¡mara segÃºn el turno
+  // Orientar la cámara según el turno
   useEffect(() => {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
@@ -153,6 +157,57 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare }:
     controls.target.set(0, 0.3, 0);
     controls.update();
   }, [currentTurn]);
+
+	// Marcadores de selección y destinos permitidos
+	useEffect(() => {
+		const scene = sceneRef.current;
+		if (!scene) return;
+
+		let root = markersRootRef.current;
+		if (!root) {
+			root = new THREE.Group();
+			root.name = 'markers-root';
+			scene.add(root);
+			markersRootRef.current = root;
+		}
+
+		// limpiar
+		while (root.children.length > 0) {
+			const c = root.children.pop();
+			if (c) root.remove(c);
+		}
+
+		const toWorld = (key: string) => {
+			const [rowStr, colStr] = key.split(',');
+			const row = Number(rowStr);
+			const col = Number(colStr);
+			return new THREE.Vector3(
+				(col - 3.5) * SQUARE_SIZE,
+				BOARD_TOP_Y + 0.02,
+				(row - 3.5) * SQUARE_SIZE,
+			);
+		};
+
+		if (selectedSquareKey) {
+			const ring = new THREE.Mesh(
+				new THREE.RingGeometry(0.34, 0.46, 32),
+				new THREE.MeshBasicMaterial({ color: '#34d399', transparent: true, opacity: 0.9, side: THREE.DoubleSide })
+			);
+			ring.rotation.x = -Math.PI / 2;
+			ring.position.copy(toWorld(selectedSquareKey));
+			root.add(ring);
+		}
+
+		availableDestinations.forEach((key) => {
+			const dot = new THREE.Mesh(
+				new THREE.CylinderGeometry(0.08, 0.08, 0.02, 24),
+				new THREE.MeshBasicMaterial({ color: '#a7f3d0', transparent: true, opacity: 0.9 })
+			);
+			dot.rotation.x = -Math.PI / 2;
+			dot.position.copy(toWorld(key));
+			root.add(dot);
+		});
+	}, [selectedSquareKey, availableDestinations]);
 
 	useEffect(() => {
 		const scene = sceneRef.current;
@@ -190,3 +245,4 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare }:
 		/>
 	);
 }
+

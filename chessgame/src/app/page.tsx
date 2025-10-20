@@ -63,7 +63,13 @@ export default function Home(): JSX.Element {
 					<div className="space-y-4">
 						<h2 className="text-lg font-semibold">{t('scene.title')}</h2>
 						<div className="flex h-[420px] w-full items-center justify-center overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
-							<ChessScene initialPieces={scenePieces} currentTurn={currentTurn} onPickSquare={handlePickSquare} />
+							<ChessScene
+								initialPieces={scenePieces}
+								currentTurn={currentTurn}
+								onPickSquare={handlePickSquare}
+								selectedSquareKey={selectedSquareKey}
+								availableDestinations={availableDestinations}
+							/>
 						</div>
 						<div className="space-y-4">
 							<InfoPanel
