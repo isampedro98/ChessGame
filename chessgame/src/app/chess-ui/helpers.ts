@@ -14,7 +14,8 @@ export const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 
 export const getPieceSymbol = (piece: Piece): string => {
   const base = PIECE_SYMBOLS[piece.type];
-  return piece.belongsTo(Team.White) ? base : base.toLowerCase();
+  // Always uppercase for consistency across teams
+  return base;
 };
 
 export const pieceCssClass = (piece: Piece): string =>

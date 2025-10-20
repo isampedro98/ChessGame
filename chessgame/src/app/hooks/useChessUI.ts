@@ -2,14 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 
-import {
-  Game,
-  Team,
-  PieceType,
-  Position,
-  type Move,
-  type Piece,
-} from '@/domain/chess';
+import { Game, Team, PieceType, Position, type Move, type Piece } from '@/domain/chess';
 
 import {
   describeMove,
@@ -111,6 +104,13 @@ export const useChessUI = (game: Game) => {
 
   const handleSquareClick = useCallback(
     (square: SquareInfo) => {
+      // Si hay ganador, ignoramos más clicks
+      const board = game.getBoard();
+      const whiteHasKing = board.getPiecesByTeam(Team.White).some((p) => p.type === PieceType.King);
+      const blackHasKing = board.getPiecesByTeam(Team.Black).some((p) => p.type === PieceType.King);
+      if (!whiteHasKing || !blackHasKing) {
+        return;
+      }
       const key = square.position.toKey();
       const currentTurn = game.getTurn();
 
@@ -156,9 +156,18 @@ export const useChessUI = (game: Game) => {
   );
 
   const currentTurn = game.getTurn();
-  const instruction = selection
-    ? t('board.instruction.selectDestination')
-    : t('board.instruction.selectPiece');
+  const board = game.getBoard();
+  const whiteHasKing = board.getPiecesByTeam(Team.White).some((p) => p.type === PieceType.King);
+  const blackHasKing = board.getPiecesByTeam(Team.Black).some((p) => p.type === PieceType.King);
+  const winner: Team | null = !whiteHasKing ? Team.Black : !blackHasKing ? Team.White : null;
+
+  const instruction = winner
+    ? winner === Team.White
+      ? t('info.winner.whites')
+      : t('info.winner.blacks')
+    : selection
+      ? t('board.instruction.selectDestination')
+      : t('board.instruction.selectPiece');
 
   return {
     squares,
