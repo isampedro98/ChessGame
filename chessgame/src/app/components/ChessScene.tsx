@@ -55,8 +55,9 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 	const boardSquaresRef = useRef<THREE.Object3D[]>([]);
 	const raycasterRef = useRef<THREE.Raycaster | null>(null);
 	const mouseRef = useRef<THREE.Vector2 | null>(null);
-	const markersRootRef = useRef<THREE.Group | null>(null);
-	const isOrbitingRef = useRef(false); 
+  const markersRootRef = useRef<THREE.Group | null>(null);
+  const isOrbitingRef = useRef(false);
+  const lastPointerDownRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -110,9 +111,16 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
     scene.add(markersRoot);
     markersRootRef.current = markersRoot;
 
+    const onPointerDown = (ev: PointerEvent) => {
+      lastPointerDownRef.current = { x: ev.clientX, y: ev.clientY };
+    };
+
     const onClick = (ev: MouseEvent) => {
       if (!cameraRef.current || !rendererRef.current || !onPickSquare) return;
-      if (isOrbitingRef.current) return;
+      // Ignore if drag distance is significant (orbiting/pan)
+      const dx = ev.clientX - lastPointerDownRef.current.x;
+      const dy = ev.clientY - lastPointerDownRef.current.y;
+      if (Math.hypot(dx, dy) > 6) return;
       const rect = canvas.getBoundingClientRect();
       const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
@@ -124,7 +132,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
         ...boardSquaresRef.current,
         ...pieceObjects,
         ...markerObjects,
-      ], false);
+      ], true);
       if (hits.length > 0) {
         const hit = hits[0].object as THREE.Object3D;
         // Prefer exact indices if present (board cells or markers)
@@ -144,7 +152,8 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
         onPickSquare(row, col);
       }
     };
-		canvas.addEventListener('click', onClick);
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('click', onClick);
 
 		let raf = 0;
 		const animate = () => {
@@ -162,7 +171,8 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 			piecesRef.current.clear();
 			controls.dispose();
 			renderer.dispose();
-			canvas.removeEventListener('click', onClick);
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('click', onClick);
 		};
 	}, []);
 
