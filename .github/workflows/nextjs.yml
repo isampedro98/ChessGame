@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -45,9 +45,13 @@ jobs:
         working-directory: ./chessgame
         run: npm ci
 
-      - name: Build with Next.js
+      - name: Lint
         working-directory: ./chessgame
-        run: npx next build
+        run: npm run lint
+
+      - name: Build (npm script)
+        working-directory: ./chessgame
+        run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
