@@ -10,7 +10,7 @@ import { StatsPanel } from '@/app/components/StatsPanel';
 import { SquareInfo, useChessUI } from '@/app/hooks/useChessUI';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import ChessScene from '@/app/components/ChessScene';
-import { createStandardGame, createSwappedGame } from '@/domain/chess';
+import { createStandardGame, createSwappedGame, Move } from '@/domain/chess';
 import { Position } from '@/domain/chess';
 import { Team } from '@/domain/chess';
 import { PieceType } from '@/domain/chess';
@@ -178,7 +178,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     if (game.getTurn() !== botSide) return;
     const board = game.getBoard();
     const pieces = board.getPiecesByTeam(botSide);
-    const allMoves: any[] = [];
+    const allMoves: Move[] = [];
     for (const p of pieces) {
       const ms = p.generateMoves(board);
       for (const m of ms) allMoves.push(m);
