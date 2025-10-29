@@ -1,20 +1,20 @@
 # ChessGame
 
-Next.js application that pairs a TypeScript chess engine with a fully rendered Three.js board. The repository houses the domain logic, a modular 3D scene, and the UI layer that ties everything together.
+Next.js application that pairs a TypeScript chess engine with a fully rendered Three.js board. The repository contains the domain logic, a modular 3D scene, and the UI layer that ties everything together.
 
 ## Tech Stack
-- Next.js 15 (App Router, `output: 'export'` para hosting estático)
+- Next.js 15 (App Router, `output: 'export'` for static hosting)
 - React 19
-- TypeScript estricto (`strict: true`, alias de paths `@/*`)
-- ESLint (flat config) con `next/core-web-vitals` + `next/typescript`
-- Tailwind CSS v4 vía `@tailwindcss/postcss`
-- Three.js para la escena 3D
+- Strict TypeScript (`strict: true`, path aliases `@/*`)
+- ESLint (flat config) with `next/core-web-vitals` + `next/typescript`
+- Tailwind CSS v4 via `@tailwindcss/postcss`
+- Three.js for the 3D scene
 
 ## Requirements
 - Node.js 20+
 - npm 10+
 
-Install dependencies once:
+Install dependencies:
 ```bash
 npm install
 ```
@@ -26,27 +26,27 @@ npm run dev
 Visit http://localhost:3000 to explore the UI, play through moves, and see the synchronised 3D scene.
 
 ## Build & Static Export
-- El proyecto está configurado para export estático (`next.config.ts` usa `output: 'export'`).
-- `npm run build` genera el sitio en `out/` listo para cualquier hosting estático.
-- Si se despliega en GitHub Pages, `basePath` se ajusta automáticamente desde `GITHUB_REPOSITORY`.
+- The project is configured for static export (`next.config.ts` sets `output: 'export'`).
+- `npm run build` produces the site in `out/`, ready for any static host.
+- When deployed to GitHub Pages, `basePath` is set automatically from `GITHUB_REPOSITORY`.
 
 ## CI/CD (GitHub Actions)
-Se usa un único workflow para lint + build + deploy a GitHub Pages.
+A single workflow handles lint, build, and deploy to GitHub Pages.
 
-- Trigger: `push` a `main` y ejecución manual (`workflow_dispatch`).
-- Pasos: `checkout` → `setup-node@20` (cache npm) → cache de `.next` → `npm ci` → `npm run lint` → `npm run build` → `configure-pages` → `upload-pages-artifact` (desde `chessgame/out`) → `deploy-pages`.
-- Concurrency: evita despliegues superpuestos (`cancel-in-progress: true`).
-- Permisos: `pages: write` e `id-token: write` para publicar en Pages.
+- Triggers: on `push` to `main` and manual runs via `workflow_dispatch`.
+- Steps: `checkout` → `setup-node@20` (npm cache) → restore `.next` cache → `npm ci` → `npm run lint` → `npm run build` → `configure-pages` → `upload-pages-artifact` (from `chessgame/out`) → `deploy-pages`.
+- Concurrency: prevents overlapping deployments (`cancel-in-progress: true`).
+- Permissions: `pages: write` and `id-token: write` to publish to Pages.
 
-Cómo activarlo:
-- En GitHub, ir a `Settings > Pages` y seleccionar `Source: GitHub Actions`.
-- Confirmar que la rama por defecto es `main` y que los secrets no son necesarios (build estático).
+How to enable:
+- In GitHub, go to `Settings > Pages` and set `Source: GitHub Actions`.
+- Ensure default branch is `main`; no secrets are needed (static build).
 
-Ubicación del workflow: `.github/workflows/nextjs.yml`.
+Workflow location: `.github/workflows/nextjs.yml`.
 
-### Nota sobre `npm ci` y lockfile
-- El pipeline usa `npm ci` para instalaciones reproducibles. Si agregás dependencias o devDependencies, ejecutá `npm install` localmente y commiteá el `package-lock.json` actualizado.
-- Si `package.json` cambia pero el lockfile no, `npm ci` falla con `EUSAGE` y mensajes de "Missing ... from lock file".
+### Note on `npm ci` and the lockfile
+- The pipeline uses `npm ci` for reproducible installs. If you add dependencies or devDependencies, run `npm install` locally and commit the updated `package-lock.json`.
+- If `package.json` changes but the lockfile does not, `npm ci` will fail with an `EUSAGE` error and messages like “Missing ... from lock file”.
 
 ## Project Layout
 ```
@@ -73,68 +73,69 @@ npm run lint    # Run ESLint using the project configuration
 ```
 
 ## Current Status
-- TypeScript engine models positions, moves, and board state under `src/domain/chess`.
-- Next.js page (`src/app/page.tsx`) renders history panels, the 3D scene, and live board state.
+- The TypeScript engine models positions, moves, and board state under `src/domain/chess`.
+- The Next.js page (`src/app/page.tsx`) renders history panels, the 3D scene, and live board state.
 - Three.js helpers in `src/chess-scene` provide reusable builders for geometries, lighting, and materials.
-- Internationalisation layer under `src/app/i18n` ships English and Spanish translations.
-- Roadmap: special-move polish (castling, en passant animations), richer piece materials, and interactive camera controls.
+- The internationalisation layer under `src/app/i18n` ships English and Spanish translations.
+- Roadmap highlights: special-move polish (castling, en passant animations), richer piece materials, and interactive camera controls.
 
-## Estándares y Convenciones
-- Estructura en capas y separación de responsabilidades:
-  - `domain/` contiene el motor de ajedrez (clases puras, sin dependencias de UI/Three.js).
-  - `chess-scene/` expone funciones puras para construir geometrías, materiales y luces.
-  - `app/` orquesta la UI (componentes React, hooks, i18n, helpers de vista).
-- TypeScript estricto:
-  - `tsconfig.json` con `strict: true`, `moduleResolution: bundler` y alias `@/* -> src/*`.
-  - Exportaciones agrupadas con “barrel files” (`index.ts`) en `domain/chess` y `chess-scene`.
-- Estilo de código:
-  - ESLint flat config (`eslint.config.mjs`) basado en `next/core-web-vitals` + `next/typescript`.
-  - Convenciones de naming: componentes en PascalCase (`BoardGrid.tsx`), utilidades en camelCase.
-  - Preferir funciones puras y datos inmutables para builders (especialmente en `chess-scene`).
-- App Router y componentes cliente:
-  - Archivos de UI que usan estado/efectos comienzan con `'use client'`.
-  - Hooks encapsulan estado y efectos (p. ej. `useChessUI`).
-- Estilos:
-  - Tailwind CSS v4 via PostCSS plugin; `globals.css` declara theme tokens con `@theme inline`.
+## Standards and Conventions
+- Layered architecture and separation of concerns:
+  - `domain/`: the chess engine (pure classes, no UI/Three.js dependencies).
+  - `chess-scene/`: pure functions to build geometries, materials, and lights.
+  - `app/`: UI orchestration (React components, hooks, i18n, view helpers).
+- Strict TypeScript:
+  - `tsconfig.json` with `strict: true`, `moduleResolution: bundler`, and alias `@/* -> src/*`.
+  - Grouped exports with barrel files (`index.ts`) in `domain/chess` and `chess-scene`.
+- Code style:
+  - ESLint flat config (`eslint.config.mjs`) based on `next/core-web-vitals` + `next/typescript`.
+  - Naming conventions: components in PascalCase (`BoardGrid.tsx`), utilities in camelCase.
+  - Prefer pure functions and immutable data for builders (especially in `chess-scene`).
+- App Router and client components:
+  - UI files using state/effects start with `'use client'`.
+  - Hooks encapsulate state and effects (for example `useChessUI`).
+- Styles:
+  - Tailwind CSS v4 via PostCSS plugin; `globals.css` declares theme tokens with `@theme inline`.
 - i18n:
-  - `TranslationProvider` con diccionarios estáticos (`en`, `es`). Claves centralizadas en `translations.ts`.
-- Accesibilidad:
-  - Etiquetas ARIA en casillas del tablero y foco visible en interacciones.
+  - `TranslationProvider` with static dictionaries (`en`, `es`). Keys centralised in `translations.ts`.
+- Accessibility:
+  - ARIA labels on board squares and visible focus for interactions.
 
-## Referencias y Créditos
-- Inspiración para modelado de piezas en Three.js: https://github.com/Sushant-Coder-01/chess3d
-  - Usaremos técnicas similares (perfiles lathe, grupos compuestos, coronas/merlones) y las adaptaremos al estilo del proyecto.
+## References and Credits
+- Inspiration for Three.js piece modeling: https://github.com/Sushant-Coder-01/chess3d
+  - Similar techniques are used here (lathe profiles, composite groups, crowns/merlons) adapted to this project’s style.
 
-## Cosas a Tener en Cuenta
-- Render 3D:
-  - El canvas se monta en `ChessScene.tsx` y consume builders de `@/chess-scene`.
-  - El tamaño del canvas se sincroniza en `resize`; el render loop se limpia correctamente.
-- Sincronización dominio ↔ escena:
-  - La UI deriva `scenePieces` desde el estado del juego (ver `useChessUI`).
-  - La selección y los destinos disponibles se calculan con `useMemo` para evitar renders extra.
-- Export estático y GitHub Pages:
-  - `basePath` se ajusta en base a `GITHUB_REPOSITORY`, útil para repositorios de usuario/gh-pages.
-- Alias de imports:
-  - Usar `@/` en lugar de rutas relativas profundas (configurado en `tsconfig.json`).
+## Notes
+- 3D rendering:
+  - The canvas mounts in `ChessScene.tsx` and consumes builders from `@/chess-scene`.
+  - Canvas size syncs on `resize`; the render loop is properly cleaned up.
+- Domain ↔ scene sync:
+  - The UI derives `scenePieces` from game state (see `useChessUI`).
+  - Selection and allowed destinations are memoised to avoid extra renders.
+- Static export and GitHub Pages:
+  - `basePath` derives from `GITHUB_REPOSITORY`, useful for user/gh-pages repos.
+- Import aliases:
+  - Use `@/` instead of deep relative paths (configured in `tsconfig.json`).
 
-## Próximos Pasos (Roadmap sugerido)
-- Motor de ajedrez
-  - Implementar detección de jaque/jaque mate, ahogado y legalidad completa (evitar auto-jaque).
-  - Añadir movimientos especiales dedicados: `CastleMove`, `EnPassantMove`, `PromotionMove`.
-  - Soporte de FEN/PGN: importar posiciones, exportar historial y partidas.
-- Escena Three.js
-  - OrbitControls para la cámara y posiciones predefinidas (overview, lateral). [Añadido]
-  - Entorno físico (RoomEnvironment + PMREM) para mejores reflejos en materiales. [Añadido]
-  - Raycasting para seleccionar piezas/casillas con el mouse directamente en 3D.
-  - Animaciones de movimiento y captura (tweens) sincronizadas con el historial.
-  - Materiales físicos (clearcoat, sheen) y texturas avanzadas (madera, metal, PBR) y labels de coordenadas. [Parcialmente añadido]
-  - Optimización futura: `InstancedMesh` para peones y `mergeGeometries` para reducir draw calls.
+## Roadmap (Suggested)
+- Chess engine
+  - Check/checkmate, stalemate, and full legality (avoid self-check).
+  - Dedicated special moves: `CastleMove`, `EnPassantMove`, `PromotionMove`.
+  - FEN/PGN support: import positions, export history and games.
+- Three.js scene
+  - OrbitControls for the camera and preset viewpoints (overview, side). [Added]
+  - Physical environment (RoomEnvironment + PMREM) for better reflections. [Added]
+  - Raycasting to select pieces/squares directly in 3D.
+  - Movement/capture animations (tweens) synced with history.
+  - Physical materials (clearcoat, sheen), advanced textures (wood/metal/PBR), and coordinate labels. [Partially added]
+  - Future optimisation: `InstancedMesh` for pawns and `mergeGeometries` to reduce draw calls.
 - UI/UX
-  - Modo móvil y mejoras de responsividad; accesos rápidos de teclado.
-  - Estado de partida guardado en `localStorage` y reinicio rápido.
-  - Panel de configuración (tema, idioma, velocidad de animación).
-- Calidad y DX
-  - Tests unitarios (Vitest/Jest) para `domain/` y utilidades de `chess-scene`.
-  - Storybook para componentes (`components/`) y visuales de piezas.
-  - Integrar Prettier y hooks de pre-commit (lint-staged) para formato/validaciones.
-  - CI/CD (GitHub Actions) con lint + build + deploy a GitHub Pages (aprovechando `out/`).
+  - Mobile mode and responsive improvements; keyboard shortcuts.
+  - Persist game state in `localStorage` and quick reset.
+  - Settings panel (theme, language, animation speed).
+- Quality and DX
+  - Unit tests (Vitest/Jest) for `domain/` and `chess-scene` utilities.
+  - Storybook for components (`components/`) and piece visuals.
+  - Integrate Prettier and pre-commit hooks (lint-staged) for formatting/validation.
+- CI/CD (GitHub Actions) with lint + build + deploy to GitHub Pages (using `out/`).
+
