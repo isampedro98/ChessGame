@@ -66,6 +66,8 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   // Bot (Phase 1 - random legal move)
   const [botEnabled, setBotEnabled] = useState(false);
   const [botSide, setBotSide] = useState<Team>(Team.Black);
+  // End-of-game summary (declare before effects that depend on it)
+  const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
 
 	const persistStats = (value: Stats) => {
 		setStats(value);
@@ -210,7 +212,6 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     setBotSide(Team.Black);
   };
   // Detect end of game (winner or draw by max moves), persist stats, and prompt user
-  const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
   useEffect(() => {
     const winner = game.getWinner();
     const reachedMax = maxMoves != null && history.length >= maxMoves;
