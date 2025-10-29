@@ -10,7 +10,7 @@ import { StatsPanel } from '@/app/components/StatsPanel';
 import { SquareInfo, useChessUI } from '@/app/hooks/useChessUI';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import ChessScene from '@/app/components/ChessScene';
-import { createStandardGame } from '@/domain/chess';
+import { createStandardGame, createSwappedGame } from '@/domain/chess';
 import { Position } from '@/domain/chess';
 import { Team } from '@/domain/chess';
 import { PieceType } from '@/domain/chess';
@@ -62,7 +62,10 @@ export default function Home(): JSX.Element {
 		try { const raw = window.localStorage.getItem('chess.maxMoves'); return raw ? (Number(raw) || null) : null; } catch { return null; }
 	});
 	useEffect(() => { try { window.localStorage.setItem('chess.maxMoves', String(maxMoves ?? '')); } catch {} }, [maxMoves]);
-	const currentGameStartRef = useRef<string>(new Date().toISOString());
+const currentGameStartRef = useRef<string>(new Date().toISOString());
+  // Bot (Phase 1 - random legal move)
+  const [botEnabled, setBotEnabled] = useState(false);
+  const [botSide, setBotSide] = useState<Team>(Team.Black);
 
 	const persistStats = (value: Stats) => {
 		setStats(value);
@@ -102,7 +105,7 @@ export default function Home(): JSX.Element {
 		currentGameStartRef.current = new Date().toISOString();
 	};
 
-	const handleExportStats = () => {
+  const handleExportStats = () => {
 		const data = stats;
 		const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
@@ -130,7 +133,7 @@ export default function Home(): JSX.Element {
 		URL.revokeObjectURL(url);
 	};
 
-	const handleImportClick = () => fileInputRef.current?.click();
+  const handleImportClick = () => fileInputRef.current?.click();
 
   const handleImportFile: React.ChangeEventHandler<HTMLInputElement> = async (ev) => {
 		const file = ev.target.files?.[0];
@@ -165,6 +168,46 @@ export default function Home(): JSX.Element {
 			}
 		} catch {}
 		ev.target.value = '';
+  };
+  // Bot move effect: when it's bot's turn, pick a random move and simulate clicks
+  useEffect(() => {
+    if (!botEnabled) return;
+    if (pendingSummary) return;
+    if (game.getTurn() !== botSide) return;
+    const board = game.getBoard();
+    const pieces = board.getPiecesByTeam(botSide);
+    const allMoves: any[] = [];
+    for (const p of pieces) {
+      const ms = p.generateMoves(board);
+      for (const m of ms) allMoves.push(m);
+    }
+    if (allMoves.length === 0) return;
+    const move = allMoves[Math.floor(Math.random() * allMoves.length)];
+    const origin = move.from as typeof move.from;
+    const dest = move.to as typeof move.to;
+    const makeSquareInfo = (pos: typeof origin) => {
+      const piece = board.getPiece(pos);
+      return {
+        id: pos.toAlgebraic(),
+        position: pos,
+        piece,
+        isDark: ((pos.row + pos.column) % 2) === 1,
+      } as SquareInfo;
+    };
+    const originSq = makeSquareInfo(origin);
+    const destSq = makeSquareInfo(dest);
+    onSquareClick(originSq);
+    queueMicrotask(() => onSquareClick(destSq));
+  }, [history.length, botEnabled, botSide, pendingSummary]);
+
+  const handleRematchSwapColors = () => {
+    setPendingSummary(null);
+    setGame(createSwappedGame());
+    currentGameStartRef.current = new Date().toISOString();
+  };
+  const handleToggleBot = () => {
+    setBotEnabled((v) => !v);
+    setBotSide(Team.Black);
   };
   // Detect end of game (winner or draw by max moves), persist stats, and prompt user
   const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
@@ -229,6 +272,7 @@ return (
                         <div className="mb-2">Game finished. {pendingSummary.winner ?? 'DRAW'}</div>
                         <div className="flex gap-2">
                           <button onClick={handleNewGame} className="rounded-md bg-emerald-700 px-3 py-1 text-xs text-white hover:bg-emerald-600">Start New Game</button>
+                          <button onClick={handleRematchSwapColors} className="rounded-md bg-indigo-700 px-3 py-1 text-xs text-white hover:bg-indigo-600">Rematch (swap colors)</button>
                           <button onClick={() => setPendingSummary(null)} className="rounded-md bg-slate-800 px-3 py-1 text-xs text-slate-100 hover:bg-slate-700">Keep Viewing</button>
                         </div>
                       </div>
@@ -259,6 +303,7 @@ return (
                             onNewGame={handleNewGame}
                             onExportGame={handleExportGame}
                             onImportGame={handleImportClick}
+                            onPlayBot={handleToggleBot}
                         />
 							<HistoryPanel
 								history={history}
@@ -272,9 +317,3 @@ return (
 		</div>
 	);
 }
-
-
-
-
-
-
