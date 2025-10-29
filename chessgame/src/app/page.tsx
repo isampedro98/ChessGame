@@ -1,6 +1,6 @@
 'use client';
 
-import { JSX, useState } from 'react';
+import { JSX, useRef, useState } from 'react';
 
 import { BoardGrid } from '@/app/components/BoardGrid';
 import { HistoryPanel } from '@/app/components/HistoryPanel';
@@ -13,7 +13,7 @@ import { createStandardGame } from '@/domain/chess';
 import { Position } from '@/domain/chess';
 
 export default function Home(): JSX.Element {
-	const [game] = useState(() => createStandardGame());
+	const [game, setGame] = useState(() => createStandardGame());
 	const {
 		squares,
 		availableDestinations,
@@ -24,8 +24,80 @@ export default function Home(): JSX.Element {
 		scenePieces,
 		selectedSquareKey,
 		currentTurn,
+		captureDestinations,
 	} = useChessUI(game);
 		const { t } = useTranslation();
+
+	// Simple stats in localStorage
+	const STATS_KEY = 'chess.stats';
+	const [gamesPlayed, setGamesPlayed] = useState<number>(() => {
+		if (typeof window === 'undefined') return 0;
+		try {
+			const raw = window.localStorage.getItem(STATS_KEY);
+			return raw ? JSON.parse(raw).gamesPlayed ?? 0 : 0;
+		} catch {
+			return 0;
+		}
+	});
+	const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+	const persistStats = (value: number) => {
+		setGamesPlayed(value);
+		try { window.localStorage.setItem(STATS_KEY, JSON.stringify({ gamesPlayed: value })); } catch {}
+	};
+
+	const handleNewGame = () => {
+		setGame(createStandardGame());
+		persistStats(gamesPlayed + 1);
+	};
+
+	const handleExportStats = () => {
+		const data = { gamesPlayed };
+		const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url; a.download = 'chess-stats.json'; a.click();
+		URL.revokeObjectURL(url);
+	};
+
+	const handleExportGame = () => {
+		const records = game.moveHistory().map(({ move }) => ({
+			pieceId: move.pieceId,
+			from: { row: move.from.row, column: move.from.column },
+			to: { row: move.to.row, column: move.to.column },
+		}));
+		const blob = new Blob([JSON.stringify({ moves: records }, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a'); a.href = url; a.download = 'chess-game.json'; a.click();
+		URL.revokeObjectURL(url);
+	};
+
+	const handleImportClick = () => fileInputRef.current?.click();
+
+	const handleImportFile: React.ChangeEventHandler<HTMLInputElement> = async (ev) => {
+		const file = ev.target.files?.[0];
+		if (!file) return;
+		const text = await file.text();
+		try {
+			const json = JSON.parse(text);
+			if (json && typeof json.gamesPlayed === 'number') {
+				persistStats(json.gamesPlayed);
+			}
+			if (Array.isArray(json.moves)) {
+				const fresh = createStandardGame();
+				const { Position } = await import('@/domain/chess');
+				const { SimpleMove } = await import('@/domain/chess/moves/SimpleMove');
+				for (const m of json.moves) {
+					const from = Position.fromCoordinates(m.from.row, m.from.column);
+					const to = Position.fromCoordinates(m.to.row, m.to.column);
+					const move = new SimpleMove(m.pieceId, from, to);
+					try { fresh.executeMove(move); } catch {}
+				}
+				setGame(fresh);
+			}
+		} catch {}
+		ev.target.value = '';
+	};
 
 	// Stable lookup by board key for 3D clicks
 	const squaresByKey = new Map(squares.map((s) => [s.position.toKey(), s]));
@@ -58,6 +130,14 @@ return (
 						<p className="max-w-3xl text-slate-400">{t('app.description')}</p>
 					</div>
 					<LanguageSwitcher />
+					<div className="mt-2 flex flex-wrap gap-2">
+						<button onClick={handleNewGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.newGame') || 'New Game'}</button>
+						<button onClick={() => alert('Bot mode coming soon')} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.playBot') || 'Play vs Bot'}</button>
+						<button onClick={handleExportGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.exportGame') || 'Export Game'}</button>
+						<button onClick={handleExportStats} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.exportStats') || 'Export Stats'}</button>
+						<button onClick={handleImportClick} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.import') || 'Import'}</button>
+						<input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
+					</div>
 				</header>
 
 				<section className="grid gap-12 lg:grid-cols-[minmax(0,420px)_1fr]">
@@ -82,6 +162,7 @@ return (
 								onPickSquare={handlePickSquare}
 								selectedSquareKey={selectedSquareKey}
 								availableDestinations={availableDestinations}
+								captureDestinations={captureDestinations}
 							/>
 						</div>
 						<div className="space-y-4">

@@ -34,6 +34,7 @@ interface ChessSceneProps {
   onPickSquare?: (row: number, column: number, originKey?: string) => void;
   selectedSquareKey?: string | null;
   availableDestinations?: Set<string>;
+  captureDestinations?: Set<string>;
 }
 
 const factoryByType: Record<PieceType, (m: THREE.Material) => THREE.Object3D> =
@@ -46,7 +47,7 @@ const factoryByType: Record<PieceType, (m: THREE.Material) => THREE.Object3D> =
 		[PieceType.King]: createKing,
 	};
 
-export default function ChessScene({ initialPieces, currentTurn, onPickSquare, selectedSquareKey = null, availableDestinations = new Set() }: ChessSceneProps) {
+export default function ChessScene({ initialPieces, currentTurn, onPickSquare, selectedSquareKey = null, availableDestinations = new Set(), captureDestinations = new Set() }: ChessSceneProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 	const sceneRef = useRef<THREE.Scene | null>(null);
@@ -195,7 +196,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 
 
 
-	// Marcadores de seleccion y destinos permitidos
+	// Marcadores de seleccion y destinos permitidos (capturas en rojo)
 	useEffect(() => {
 		const scene = sceneRef.current;
 		if (!scene) return;
@@ -206,8 +207,8 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 			scene.add(root);
 			markersRootRef.current = root;
 		}
-		updateMarkers(root, selectedSquareKey, availableDestinations);
-	}, [selectedSquareKey, availableDestinations]);
+		updateMarkers(root, selectedSquareKey, availableDestinations, captureDestinations);
+	}, [selectedSquareKey, availableDestinations, captureDestinations]);
 
 	useEffect(() => {
 		const scene = sceneRef.current;

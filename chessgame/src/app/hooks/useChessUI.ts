@@ -98,6 +98,18 @@ export const useChessUI = (game: Game) => {
     [candidateMoves],
   );
 
+  const captureDestinations = useMemo(() => {
+    const board = game.getBoard();
+    const set = new Set<string>();
+    candidateMoves.forEach((m) => {
+      const destPiece = board.getPiece(m.to);
+      if (destPiece && destPiece.team !== game.getTurn()) {
+        set.add(m.to.toKey());
+      }
+    });
+    return set;
+  }, [candidateMoves, game]);
+
   const history = useMemo(() => buildHistory(game, version), [game, version]);
 
   const scenePieces = useMemo(() => buildScenePieces(game, version), [game, version]);
@@ -172,6 +184,7 @@ export const useChessUI = (game: Game) => {
   return {
     squares,
     availableDestinations,
+    captureDestinations,
     history,
     instruction,
     message,

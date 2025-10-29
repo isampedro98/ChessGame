@@ -16,6 +16,7 @@ export const updateMarkers = (
   root: THREE.Group,
   selectedKey: string | null,
   destinations: Set<string>,
+  captureDestinations: Set<string> = new Set(),
 ): void => {
   while (root.children.length > 0) {
     const c = root.children.pop();
@@ -36,9 +37,10 @@ export const updateMarkers = (
   }
 
   destinations.forEach((key) => {
+    const isCapture = captureDestinations.has(key);
     const dot = new THREE.Mesh(
       new THREE.CylinderGeometry(0.08, 0.08, 0.02, 24),
-      new THREE.MeshBasicMaterial({ color: '#a7f3d0', transparent: true, opacity: 0.9 }),
+      new THREE.MeshBasicMaterial({ color: isCapture ? '#fda4af' : '#a7f3d0', transparent: true, opacity: 0.95 }),
     );
     dot.rotation.x = -Math.PI / 2;
     dot.position.copy(toWorld(key));
@@ -48,4 +50,3 @@ export const updateMarkers = (
     root.add(dot);
   });
 };
-

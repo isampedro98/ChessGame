@@ -37,8 +37,8 @@ export const BoardGrid = ({
             ? 'ring-2 ring-emerald-400/70 ring-inset'
             : isTarget
             ? hasEnemyPiece
-              ? 'bg-emerald-500/30'
-              : 'bg-emerald-400/20'
+              ? 'bg-rose-500/40'
+              : 'bg-emerald-400/25'
             : '';
 
           return (
@@ -58,7 +58,7 @@ export const BoardGrid = ({
                   {getPieceSymbol(square.piece)}
                 </span>
               ) : isTarget ? (
-                <span className="h-3 w-3 rounded-full bg-emerald-200/70" />
+                <span className={`h-3 w-3 rounded-full ${hasEnemyPiece ? 'bg-rose-300/80' : 'bg-emerald-200/70'}`} />
               ) : null}
             </button>
           );
