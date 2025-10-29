@@ -1,6 +1,6 @@
 'use client';
 
-import { JSX, useEffect, useRef, useState } from 'react';
+import { JSX, useCallback, useEffect, useRef, useState } from 'react';
 
 import { BoardGrid } from '@/app/components/BoardGrid';
 import { HistoryPanel } from '@/app/components/HistoryPanel';
@@ -73,7 +73,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 	const persistStats = useCallback((value: Stats) => {
 		setStats(value);
 		try { window.localStorage.setItem(STATS_KEY, JSON.stringify(value)); } catch {}
-	};
+	}, []);
 
   const summarizeGame = useCallback((): GameSummary => {
     const history = game.moveHistory();
@@ -280,6 +280,7 @@ return (
                             onExportGame={handleExportGame}
                             onImportGame={handleImportClick}
                             onPlayBot={handleToggleBot}
+                            botEnabled={botEnabled}
                         />
 							<HistoryPanel
 								history={history}

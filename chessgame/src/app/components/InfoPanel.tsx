@@ -14,9 +14,10 @@ interface InfoPanelProps {
   onExportGame: () => void;
   onImportGame: () => void;
   onPlayBot: () => void;
+  botEnabled?: boolean;
 }
 
-export const InfoPanel = ({ currentTurn, instruction, message, movesCount, maxMoves, onChangeMaxMoves, onNewGame, onExportGame, onImportGame, onPlayBot }: InfoPanelProps) => {
+export const InfoPanel = ({ currentTurn, instruction, message, movesCount, maxMoves, onChangeMaxMoves, onNewGame, onExportGame, onImportGame, onPlayBot, botEnabled = false }: InfoPanelProps) => {
   const { t } = useTranslation();
 
   return (
@@ -49,7 +50,13 @@ export const InfoPanel = ({ currentTurn, instruction, message, movesCount, maxMo
         <button onClick={onNewGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">{t('menu.newGame') || 'New Game'}</button>
         <button onClick={onExportGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">{t('menu.exportGame') || 'Export Game'}</button>
         <button onClick={onImportGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">{t('menu.import') || 'Import'}</button>
-        <button onClick={onPlayBot} className="rounded-md bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">{t('menu.playBot') || 'Play vs Bot'}</button>
+        <button
+          onClick={onPlayBot}
+          aria-pressed={botEnabled}
+          className={`rounded-md px-3 py-1.5 text-xs ${botEnabled ? 'bg-emerald-700 text-white hover:bg-emerald-600' : 'bg-slate-800 text-slate-100 hover:bg-slate-700'}`}
+        >
+          {botEnabled ? 'Bot: ON' : (t('menu.playBot') || 'Play vs Bot')}
+        </button>
       </div>
       <p className="mt-3 text-slate-400">{instruction}</p>
       {message ? (
