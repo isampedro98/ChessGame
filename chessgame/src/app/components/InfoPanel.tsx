@@ -27,9 +27,9 @@ export const InfoPanel = ({ currentTurn, instruction, message, movesCount, maxMo
         <span className="ml-1 font-semibold text-slate-100">{t(`team.${currentTurn.toLowerCase()}`)}</span>
       </p>
       <p className="mt-1 text-slate-400">
-        Moves: <span className="text-slate-200">{movesCount}</span>
+        Moves: <span className="text-slate-200" suppressHydrationWarning>{movesCount}</span>
         {maxMoves != null && (
-          <span className="text-slate-200"> / {maxMoves}</span>
+          <span className="text-slate-200" suppressHydrationWarning> / {maxMoves}</span>
         )}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
