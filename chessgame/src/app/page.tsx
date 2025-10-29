@@ -170,7 +170,7 @@ export default function Home(): JSX.Element {
   const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
   useEffect(() => {
     const winner = game.getWinner();
-    const reachedMax = maxMoves != null && game.moveHistory().length >= maxMoves;
+    const reachedMax = maxMoves != null && history.length >= maxMoves;
     if ((winner || reachedMax) && !pendingSummary) {
       const summary = summarizeGame();
       const winsWhite = stats.winsWhite + (summary.winner === 'WHITE' ? 1 : 0);
@@ -178,7 +178,7 @@ export default function Home(): JSX.Element {
       persistStats({ totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
       setPendingSummary(summary);
     }
-  }, [game, stats, maxMoves, pendingSummary]);
+  }, [history.length, maxMoves, pendingSummary, stats]);
 
 	// Stable lookup by board key for 3D clicks
 	const squaresByKey = new Map(squares.map((s) => [s.position.toKey(), s]));
@@ -272,8 +272,6 @@ return (
 		</div>
 	);
 }
-
-
 
 
 
