@@ -25,6 +25,67 @@ npm run dev
 ```
 Visit http://localhost:3000 to explore the UI, play through moves, and see the synchronised 3D scene.
 
+## Gameplay & Controls
+- Board: click origin, then destination (2D and 3D are in sync).
+- Info panel shows current turn, total moves, and an optional max-moves limit. You can:
+  - Start a New Game
+  - Export the current game as JSON
+  - Import a game JSON to replay moves
+  - Toggle Play vs Bot (Phase 1: random legal move; plays as Black by default)
+- End-of-game: when checkmate or max-moves is reached, the app records a summary and shows a prompt with:
+  - Start New Game
+  - Rematch (swap colors)
+  - Keep Viewing (no reset)
+
+## Export/Import Format
+Game export produces an array of moves using human-friendly fields:
+
+```
+{
+  "moves": [
+    { "pieceName": "pawn", "team": "white", "from": "E2", "to": "E4" },
+    { "pieceName": "pawn", "team": "black", "from": "E7", "to": "E5" }
+  ]
+}
+```
+
+The importer also accepts a legacy format with `pieceId` and `row/column` objects. If `pieceId` is not present, the importer infers the piece on the `from` square.
+
+## Stats (localStorage)
+Stats are stored under `chess.stats` as:
+
+```
+{
+  "totalGames": 12,
+  "winsWhite": 6,
+  "winsBlack": 4,
+  "games": [
+    {
+      "id": "game-1712345678",
+      "moves": 34,
+      "capturedWhite": 5,
+      "capturedBlack": 7,
+      "winner": "WHITE" | "BLACK" | null,
+      "startedAt": "2025-03-01T10:20:30.000Z",
+      "endedAt": "2025-03-01T10:35:01.000Z"
+    }
+  ]
+}
+```
+
+- Export/Import stats from the UI.
+- The Stats panel lists totals and the last few game summaries.
+
+## Optional Wood Textures (Board)
+- The board supports PBR wood maps. Place textures in `public/textures/` with these names to enable them:
+  - `wood_oak_light.jpg`, `wood_oak_light_normal.jpg`, `wood_oak_light_rough.jpg`
+  - `wood_walnut_dark.jpg`, `wood_walnut_dark_normal.jpg`, `wood_walnut_dark_rough.jpg`
+- If textures are missing, solid-color fallbacks are used.
+
+## Three.js Notes
+- ACES Filmic tone mapping is enabled; legacy lights disabled for more physical results.
+- Materials for pieces emulate painted-ebony and boxwood; the board uses a satin wood finish.
+
 ## Build & Static Export
 - The project is configured for static export (`next.config.ts` sets `output: 'export'`).
 - `npm run build` produces the site in `out/`, ready for any static host.
@@ -138,4 +199,3 @@ npm run lint    # Run ESLint using the project configuration
   - Storybook for components (`components/`) and piece visuals.
   - Integrate Prettier and pre-commit hooks (lint-staged) for formatting/validation.
 - CI/CD (GitHub Actions) with lint + build + deploy to GitHub Pages (using `out/`).
-
