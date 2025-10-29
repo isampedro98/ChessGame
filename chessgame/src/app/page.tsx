@@ -61,11 +61,16 @@ export default function Home(): JSX.Element {
 	};
 
 	const handleExportGame = () => {
-		const records = game.moveHistory().map(({ move }) => ({
-			pieceId: move.pieceId,
-			from: { row: move.from.row, column: move.from.column },
-			to: { row: move.to.row, column: move.to.column },
-		}));
+		// Export with pieceName and algebraic squares (uppercase)
+		const records = game.moveHistory().map(({ move }) => {
+			const idParts = String(move.pieceId).split('-');
+			const pieceName = idParts.length >= 2 ? idParts[1] : 'piece';
+			return {
+				pieceName,
+				from: move.from.toAlgebraic().toUpperCase(),
+				to: move.to.toAlgebraic().toUpperCase(),
+			};
+		});
 		const blob = new Blob([JSON.stringify({ moves: records }, null, 2)], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a'); a.href = url; a.download = 'chess-game.json'; a.click();
@@ -88,9 +93,15 @@ export default function Home(): JSX.Element {
 				const { Position } = await import('@/domain/chess');
 				const { SimpleMove } = await import('@/domain/chess/moves/SimpleMove');
 				for (const m of json.moves) {
-					const from = Position.fromCoordinates(m.from.row, m.from.column);
-					const to = Position.fromCoordinates(m.to.row, m.to.column);
-					const move = new SimpleMove(m.pieceId, from, to);
+					const from = typeof m.from === 'string' ? Position.fromAlgebraic(m.from) : Position.fromCoordinates(m.from.row, m.from.column);
+					const to = typeof m.to === 'string' ? Position.fromAlgebraic(m.to) : Position.fromCoordinates(m.to.row, m.to.column);
+					let pieceId: string | null = typeof m.pieceId === 'string' ? m.pieceId : null;
+					if (!pieceId) {
+						const pieceAtFrom = fresh.getBoard().getPiece(from);
+						pieceId = pieceAtFrom ? pieceAtFrom.id : null;
+					}
+					if (!pieceId) { continue; }
+					const move = new SimpleMove(pieceId, from, to);
 					try { fresh.executeMove(move); } catch {}
 				}
 				setGame(fresh);

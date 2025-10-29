@@ -27,6 +27,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     'team.black': 'Black',
     'controls.language': 'Language',
     'controls.language.switch': '{next}',
+    'menu.newGame': 'New Game',
+    'menu.playBot': 'Play vs Bot',
+    'menu.exportGame': 'Export Game',
+    'menu.exportStats': 'Export Stats',
+    'menu.import': 'Import',
   },
   es: {
     'app.tagline': 'Chess Lab',
