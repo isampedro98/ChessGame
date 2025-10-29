@@ -1,6 +1,6 @@
 'use client';
 
-import { JSX, useRef, useState } from 'react';
+import { JSX, useEffect, useRef, useState } from 'react';
 
 import { BoardGrid } from '@/app/components/BoardGrid';
 import { HistoryPanel } from '@/app/components/HistoryPanel';
@@ -53,8 +53,15 @@ export default function Home(): JSX.Element {
 		}
 	};
 
-	const [stats, setStats] = useState<Stats>(() => loadStats());
+	// Avoid hydration mismatch: init with empty and load after mount
+	const [stats, setStats] = useState<Stats>({ totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] });
+	useEffect(() => { setStats(loadStats()); }, []);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
+	const [maxMoves, setMaxMoves] = useState<number | null>(() => {
+		if (typeof window === 'undefined') return null;
+		try { const raw = window.localStorage.getItem('chess.maxMoves'); return raw ? (Number(raw) || null) : null; } catch { return null; }
+	});
+	useEffect(() => { try { window.localStorage.setItem('chess.maxMoves', String(maxMoves ?? '')); } catch {} }, [maxMoves]);
 	const currentGameStartRef = useRef<string>(new Date().toISOString());
 
 	const persistStats = (value: Stats) => {
@@ -125,7 +132,7 @@ export default function Home(): JSX.Element {
 
 	const handleImportClick = () => fileInputRef.current?.click();
 
-	const handleImportFile: React.ChangeEventHandler<HTMLInputElement> = async (ev) => {
+  const handleImportFile: React.ChangeEventHandler<HTMLInputElement> = async (ev) => {
 		const file = ev.target.files?.[0];
 		if (!file) return;
 		const text = await file.text();
@@ -158,7 +165,20 @@ export default function Home(): JSX.Element {
 			}
 		} catch {}
 		ev.target.value = '';
-	};
+  };
+  // Auto-close on winner or draw by maxMoves
+  useEffect(() => {
+    const winner = game.getWinner();
+    const reachedMax = maxMoves != null && game.moveHistory().length >= maxMoves;
+    if (winner || reachedMax) {
+      const summary = summarizeGame();
+      const winsWhite = stats.winsWhite + (summary.winner === 'WHITE' ? 1 : 0);
+      const winsBlack = stats.winsBlack + (summary.winner === 'BLACK' ? 1 : 0);
+      persistStats({ totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
+      setGame(createStandardGame());
+      currentGameStartRef.current = new Date().toISOString();
+    }
+  }, [game, stats, maxMoves]);
 
 	// Stable lookup by board key for 3D clicks
 	const squaresByKey = new Map(squares.map((s) => [s.position.toKey(), s]));
@@ -197,8 +217,18 @@ return (
 						<button onClick={handleExportGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.exportGame') || 'Export Game'}</button>
 						<button onClick={handleExportStats} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.exportStats') || 'Export Stats'}</button>
 						<button onClick={handleImportClick} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.import') || 'Import'}</button>
-						<input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
-					</div>
+                    <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
+                    <label className="ml-2 inline-flex items-center gap-2 text-sm text-slate-400">
+                      Max moves:
+                      <select value={maxMoves ?? ''} onChange={(e) => setMaxMoves(e.target.value === '' ? null : Number(e.target.value))} className="rounded-md bg-slate-800 px-2 py-1 text-slate-100">
+                        <option value="">Unlimited</option>
+                        <option value="40">40</option>
+                        <option value="60">60</option>
+                        <option value="80">80</option>
+                        <option value="100">100</option>
+                      </select>
+                    </label>
+                </div>
 				</header>
 
 				<section className="grid gap-12 lg:grid-cols-[minmax(0,420px)_1fr]">
@@ -212,7 +242,7 @@ return (
 							onSquareClick={onSquareClick}
 						/>
                     <p className="text-sm text-slate-500">{t('board.subtitle')}</p>
-                    <StatsPanel stats={stats as any} />
+                    <StatsPanel stats={stats} />
 					</div>
 
 					<div className="space-y-4">
@@ -245,9 +275,6 @@ return (
 		</div>
 	);
 }
-
-
-
 
 
 

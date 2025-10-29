@@ -23,6 +23,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     'info.currentTurn': 'Current turn',
     'info.winner.whites': 'Whites won',
     'info.winner.blacks': 'Blacks won',
+    'info.winner.draw': 'Draw',
     'team.white': 'White',
     'team.black': 'Black',
     'controls.language': 'Language',

@@ -173,7 +173,9 @@ export const useChessUI = (game: Game) => {
   const instruction = winner
     ? winner === Team.White
       ? t('info.winner.whites')
-      : t('info.winner.blacks')
+      : winner === Team.Black
+        ? t('info.winner.blacks')
+        : t('info.winner.draw')
     : selection
       ? t('board.instruction.selectDestination')
       : t('board.instruction.selectPiece');
