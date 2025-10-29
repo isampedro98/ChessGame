@@ -1,10 +1,67 @@
 import * as THREE from 'three';
 
-// Cooler wood palette (less orange)
-export const createSquareMaterial = () => {
-    const lightColor = new THREE.Color('#e9dfcc'); // light beech/maple (cooler)
-    const darkColor = new THREE.Color('#8a6e55');  // cooler walnut/brown
-    return { lightColor, darkColor };
+// Cooler wood palette (fallback if textures are missing)
+const WOOD_FALLBACK_LIGHT = '#e9dfcc';
+const WOOD_FALLBACK_DARK = '#8a6e55';
+
+export type SquareMaterials = {
+    light: THREE.MeshPhysicalMaterial;
+    dark: THREE.MeshPhysicalMaterial;
+};
+
+// Tries to load board textures; if not found, keeps solid-color fallback.
+export const createSquareMaterials = (paths = {
+    light: '/textures/wood_oak_light.jpg',
+    dark: '/textures/wood_walnut_dark.jpg',
+}): SquareMaterials => {
+    const matLight = new THREE.MeshPhysicalMaterial({
+        color: WOOD_FALLBACK_LIGHT,
+        roughness: 0.55,
+        metalness: 0.0,
+        clearcoat: 0.3,
+        clearcoatRoughness: 0.4,
+    });
+    const matDark = new THREE.MeshPhysicalMaterial({
+        color: WOOD_FALLBACK_DARK,
+        roughness: 0.5,
+        metalness: 0.0,
+        clearcoat: 0.3,
+        clearcoatRoughness: 0.4,
+    });
+
+    try {
+        const loader = new THREE.TextureLoader();
+        loader.load(
+            paths.light,
+            (tex) => {
+                tex.colorSpace = THREE.SRGBColorSpace;
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(2, 2);
+                matLight.map = tex;
+                matLight.color.set('#ffffff');
+                matLight.needsUpdate = true;
+            },
+            undefined,
+            () => { /* keep fallback */ }
+        );
+        loader.load(
+            paths.dark,
+            (tex) => {
+                tex.colorSpace = THREE.SRGBColorSpace;
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(2, 2);
+                matDark.map = tex;
+                matDark.color.set('#ffffff');
+                matDark.needsUpdate = true;
+            },
+            undefined,
+            () => { /* keep fallback */ }
+        );
+    } catch {
+        // Running in a non-DOM environment or textures missing: leave fallbacks
+    }
+
+    return { light: matLight, dark: matDark };
 };
 
 // Painted-ebony and boxwood-like pieces with subtle clearcoat

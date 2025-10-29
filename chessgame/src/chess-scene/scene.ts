@@ -8,6 +8,12 @@ export const createRenderer = (canvas: HTMLCanvasElement) => {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Use physically correct lighting model (Three r169+ uses useLegacyLights)
+    // @ts-ignore
+    if ('useLegacyLights' in renderer) {
+        // @ts-ignore
+        renderer.useLegacyLights = false;
+    }
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
     return renderer;
