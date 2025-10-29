@@ -6,12 +6,14 @@ import { BoardGrid } from '@/app/components/BoardGrid';
 import { HistoryPanel } from '@/app/components/HistoryPanel';
 import { InfoPanel } from '@/app/components/InfoPanel';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
+import { StatsPanel } from '@/app/components/StatsPanel';
 import { SquareInfo, useChessUI } from '@/app/hooks/useChessUI';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import ChessScene from '@/app/components/ChessScene';
 import { createStandardGame } from '@/domain/chess';
 import { Position } from '@/domain/chess';
 import { Team } from '@/domain/chess';
+import { PieceType } from '@/domain/chess';
 
 export default function Home(): JSX.Element {
 	const [game, setGame] = useState(() => createStandardGame());
@@ -60,11 +62,11 @@ export default function Home(): JSX.Element {
 		try { window.localStorage.setItem(STATS_KEY, JSON.stringify(value)); } catch {}
 	};
 
-	const summarizeGame = (): GameSummary => {
-		const history = game.moveHistory();
-		const board = game.getBoard();
-		const whiteHasKing = board.getPiecesByTeam(Team.White).some((p) => p.type === 0 /* KING enum value placeholder */);
-		const blackHasKing = board.getPiecesByTeam(Team.Black).some((p) => p.type === 0);
+  const summarizeGame = (): GameSummary => {
+    const history = game.moveHistory();
+    const board = game.getBoard();
+    const whiteHasKing = board.getPiecesByTeam(Team.White).some((p) => p.type === PieceType.King);
+    const blackHasKing = board.getPiecesByTeam(Team.Black).some((p) => p.type === PieceType.King);
 		const winner: 'WHITE' | 'BLACK' | null = !whiteHasKing ? 'BLACK' : !blackHasKing ? 'WHITE' : null;
 		let capturedWhite = 0; let capturedBlack = 0;
 		for (const rec of history) {
@@ -209,7 +211,8 @@ return (
 							currentTurn={currentTurn}
 							onSquareClick={onSquareClick}
 						/>
-						<p className="text-sm text-slate-500">{t('board.subtitle')}</p>
+                    <p className="text-sm text-slate-500">{t('board.subtitle')}</p>
+                    <StatsPanel stats={stats as any} />
 					</div>
 
 					<div className="space-y-4">

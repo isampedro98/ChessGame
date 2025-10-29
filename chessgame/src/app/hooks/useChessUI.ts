@@ -168,10 +168,7 @@ export const useChessUI = (game: Game) => {
   );
 
   const currentTurn = game.getTurn();
-  const board = game.getBoard();
-  const whiteHasKing = board.getPiecesByTeam(Team.White).some((p) => p.type === PieceType.King);
-  const blackHasKing = board.getPiecesByTeam(Team.Black).some((p) => p.type === PieceType.King);
-  const winner: Team | null = !whiteHasKing ? Team.Black : !blackHasKing ? Team.White : null;
+  const winner: Team | null = game.getWinner();
 
   const instruction = winner
     ? winner === Team.White
