@@ -18,11 +18,14 @@ export type Stats = {
   games: GameSummary[];
 };
 
-export function StatsPanel({ stats }: { stats: Stats }) {
+export function StatsPanel({ stats, onExport }: { stats: Stats; onExport: () => void }) {
   const lastGames = [...stats.games].slice(-5).reverse();
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
       <h3 className="mb-2 text-base font-semibold text-slate-200">Stats</h3>
+      <div className="mb-3">
+        <button onClick={onExport} className="rounded-md bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">Export Stats</button>
+      </div>
       <div className="mb-3 grid grid-cols-3 gap-2 text-sm">
         <div className="rounded-md bg-slate-800/60 p-2">
           <div className="text-slate-400">Total Games</div>

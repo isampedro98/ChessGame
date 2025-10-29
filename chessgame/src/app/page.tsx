@@ -166,19 +166,19 @@ export default function Home(): JSX.Element {
 		} catch {}
 		ev.target.value = '';
   };
-  // Auto-close on winner or draw by maxMoves
+  // Detect end of game (winner or draw by max moves), persist stats, and prompt user
+  const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
   useEffect(() => {
     const winner = game.getWinner();
     const reachedMax = maxMoves != null && game.moveHistory().length >= maxMoves;
-    if (winner || reachedMax) {
+    if ((winner || reachedMax) && !pendingSummary) {
       const summary = summarizeGame();
       const winsWhite = stats.winsWhite + (summary.winner === 'WHITE' ? 1 : 0);
       const winsBlack = stats.winsBlack + (summary.winner === 'BLACK' ? 1 : 0);
       persistStats({ totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
-      setGame(createStandardGame());
-      currentGameStartRef.current = new Date().toISOString();
+      setPendingSummary(summary);
     }
-  }, [game, stats, maxMoves]);
+  }, [game, stats, maxMoves, pendingSummary]);
 
 	// Stable lookup by board key for 3D clicks
 	const squaresByKey = new Map(squares.map((s) => [s.position.toKey(), s]));
@@ -210,25 +210,7 @@ return (
 						<h1 className="text-3xl font-semibold">{t('app.title')}</h1>
 						<p className="max-w-3xl text-slate-400">{t('app.description')}</p>
 					</div>
-					<LanguageSwitcher />
-					<div className="mt-2 flex flex-wrap gap-2">
-						<button onClick={handleNewGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.newGame') || 'New Game'}</button>
-						<button onClick={() => alert('Bot mode coming soon')} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.playBot') || 'Play vs Bot'}</button>
-						<button onClick={handleExportGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.exportGame') || 'Export Game'}</button>
-						<button onClick={handleExportStats} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.exportStats') || 'Export Stats'}</button>
-						<button onClick={handleImportClick} className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">{t('menu.import') || 'Import'}</button>
-                    <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
-                    <label className="ml-2 inline-flex items-center gap-2 text-sm text-slate-400">
-                      Max moves:
-                      <select value={maxMoves ?? ''} onChange={(e) => setMaxMoves(e.target.value === '' ? null : Number(e.target.value))} className="rounded-md bg-slate-800 px-2 py-1 text-slate-100">
-                        <option value="">Unlimited</option>
-                        <option value="40">40</option>
-                        <option value="60">60</option>
-                        <option value="80">80</option>
-                        <option value="100">100</option>
-                      </select>
-                    </label>
-                </div>
+                    <LanguageSwitcher />
 				</header>
 
 				<section className="grid gap-12 lg:grid-cols-[minmax(0,420px)_1fr]">
@@ -242,7 +224,16 @@ return (
 							onSquareClick={onSquareClick}
 						/>
                     <p className="text-sm text-slate-500">{t('board.subtitle')}</p>
-                    <StatsPanel stats={stats} />
+                    {pendingSummary ? (
+                      <div className="mt-2 rounded-md border border-emerald-700/40 bg-emerald-900/30 p-3 text-sm text-emerald-200">
+                        <div className="mb-2">Game finished. {pendingSummary.winner ?? 'DRAW'}</div>
+                        <div className="flex gap-2">
+                          <button onClick={handleNewGame} className="rounded-md bg-emerald-700 px-3 py-1 text-xs text-white hover:bg-emerald-600">Start New Game</button>
+                          <button onClick={() => setPendingSummary(null)} className="rounded-md bg-slate-800 px-3 py-1 text-xs text-slate-100 hover:bg-slate-700">Keep Viewing</button>
+                        </div>
+                      </div>
+                    ) : null}
+                    <StatsPanel stats={stats} onExport={handleExportStats} />
 					</div>
 
 					<div className="space-y-4">
@@ -258,11 +249,17 @@ return (
 							/>
 						</div>
 						<div className="space-y-4">
-							<InfoPanel
-								currentTurn={currentTurn}
-								instruction={instruction}
-								message={message}
-							/>
+                        <InfoPanel
+                            currentTurn={currentTurn}
+                            instruction={instruction}
+                            message={message}
+                            movesCount={history.length}
+                            maxMoves={maxMoves}
+                            onChangeMaxMoves={(v) => setMaxMoves(v)}
+                            onNewGame={handleNewGame}
+                            onExportGame={handleExportGame}
+                            onImportGame={handleImportClick}
+                        />
 							<HistoryPanel
 								history={history}
 								title={t('history.title')}
@@ -275,10 +272,6 @@ return (
 		</div>
 	);
 }
-
-
-
-
 
 
 
