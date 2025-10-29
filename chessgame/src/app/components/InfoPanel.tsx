@@ -27,11 +27,9 @@ export const InfoPanel = ({ currentTurn, instruction, message, movesCount, maxMo
       </p>
       <p className="mt-1 text-slate-400">
         Moves: <span className="text-slate-200">{movesCount}</span>
-        {maxMoves != null ? (
-          <>
-            {' '} / <span className="text-slate-200">{maxMoves}</span>
-          </>
-        ) : null}
+        {maxMoves != null && (
+          <span className="text-slate-200"> / {maxMoves}</span>
+        )}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <label className="inline-flex items-center gap-2">

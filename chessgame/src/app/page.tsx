@@ -199,7 +199,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     const originSq = makeSquareInfo(origin);
     const destSq = makeSquareInfo(dest);
     onSquareClick(originSq);
-    queueMicrotask(() => onSquareClick(destSq));
+    setTimeout(() => onSquareClick(destSq), 0);
   }, [history.length, botEnabled, botSide, pendingSummary]);
 
   const handleRematchSwapColors = () => {
