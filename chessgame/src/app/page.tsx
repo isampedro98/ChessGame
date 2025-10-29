@@ -11,6 +11,7 @@ import { useTranslation } from '@/app/i18n/TranslationProvider';
 import ChessScene from '@/app/components/ChessScene';
 import { createStandardGame } from '@/domain/chess';
 import { Position } from '@/domain/chess';
+import { Team } from '@/domain/chess';
 
 export default function Home(): JSX.Element {
 	const [game, setGame] = useState(() => createStandardGame());
@@ -28,31 +29,72 @@ export default function Home(): JSX.Element {
 	} = useChessUI(game);
 		const { t } = useTranslation();
 
-	// Simple stats in localStorage
+	// Stats in localStorage (extended schema with per-game summaries)
 	const STATS_KEY = 'chess.stats';
-	const [gamesPlayed, setGamesPlayed] = useState<number>(() => {
-		if (typeof window === 'undefined') return 0;
+	type GameSummary = { id: string; moves: number; capturedWhite: number; capturedBlack: number; winner: 'WHITE' | 'BLACK' | null; startedAt: string; endedAt: string | null };
+	type Stats = { totalGames: number; winsWhite: number; winsBlack: number; games: GameSummary[] };
+
+	const loadStats = (): Stats => {
+		if (typeof window === 'undefined') return { totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] };
 		try {
 			const raw = window.localStorage.getItem(STATS_KEY);
-			return raw ? JSON.parse(raw).gamesPlayed ?? 0 : 0;
+			if (!raw) return { totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] };
+			const parsed = JSON.parse(raw);
+			if (parsed && Array.isArray(parsed.games)) {
+				return parsed as Stats;
+			}
+			// legacy shape { gamesPlayed }
+			const total = typeof parsed?.gamesPlayed === 'number' ? parsed.gamesPlayed : 0;
+			return { totalGames: total, winsWhite: 0, winsBlack: 0, games: [] };
 		} catch {
-			return 0;
+			return { totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] };
 		}
-	});
-	const fileInputRef = useRef<HTMLInputElement | null>(null);
+	};
 
-	const persistStats = (value: number) => {
-		setGamesPlayed(value);
-		try { window.localStorage.setItem(STATS_KEY, JSON.stringify({ gamesPlayed: value })); } catch {}
+	const [stats, setStats] = useState<Stats>(() => loadStats());
+	const fileInputRef = useRef<HTMLInputElement | null>(null);
+	const currentGameStartRef = useRef<string>(new Date().toISOString());
+
+	const persistStats = (value: Stats) => {
+		setStats(value);
+		try { window.localStorage.setItem(STATS_KEY, JSON.stringify(value)); } catch {}
+	};
+
+	const summarizeGame = (): GameSummary => {
+		const history = game.moveHistory();
+		const board = game.getBoard();
+		const whiteHasKing = board.getPiecesByTeam(Team.White).some((p) => p.type === 0 /* KING enum value placeholder */);
+		const blackHasKing = board.getPiecesByTeam(Team.Black).some((p) => p.type === 0);
+		const winner: 'WHITE' | 'BLACK' | null = !whiteHasKing ? 'BLACK' : !blackHasKing ? 'WHITE' : null;
+		let capturedWhite = 0; let capturedBlack = 0;
+		for (const rec of history) {
+			const c = rec.resolution.capturedPiece;
+			if (c) { if (c.team === Team.White) capturedWhite += 1; else capturedBlack += 1; }
+		}
+		return {
+			id: 'game-' + Date.now(),
+			moves: history.length,
+			capturedWhite,
+			capturedBlack,
+			winner,
+			startedAt: currentGameStartRef.current,
+			endedAt: new Date().toISOString(),
+		};
 	};
 
 	const handleNewGame = () => {
+		if (game.moveHistory().length > 0) {
+			const summary = summarizeGame();
+			const winsWhite = stats.winsWhite + (summary.winner === 'WHITE' ? 1 : 0);
+			const winsBlack = stats.winsBlack + (summary.winner === 'BLACK' ? 1 : 0);
+			persistStats({ totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
+		}
 		setGame(createStandardGame());
-		persistStats(gamesPlayed + 1);
+		currentGameStartRef.current = new Date().toISOString();
 	};
 
 	const handleExportStats = () => {
-		const data = { gamesPlayed };
+		const data = stats;
 		const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
@@ -61,12 +103,14 @@ export default function Home(): JSX.Element {
 	};
 
 	const handleExportGame = () => {
-		// Export with pieceName and algebraic squares (uppercase)
+		// Export with pieceName, team and algebraic squares (uppercase)
 		const records = game.moveHistory().map(({ move }) => {
 			const idParts = String(move.pieceId).split('-');
 			const pieceName = idParts.length >= 2 ? idParts[1] : 'piece';
+			const teamStr = idParts.length >= 1 ? idParts[0] : 'unknown';
 			return {
 				pieceName,
+				team: teamStr,
 				from: move.from.toAlgebraic().toUpperCase(),
 				to: move.to.toAlgebraic().toUpperCase(),
 			};
@@ -85,8 +129,12 @@ export default function Home(): JSX.Element {
 		const text = await file.text();
 		try {
 			const json = JSON.parse(text);
-			if (json && typeof json.gamesPlayed === 'number') {
-				persistStats(json.gamesPlayed);
+			if (json && (typeof json.gamesPlayed === 'number' || Array.isArray(json.games))) {
+				if (Array.isArray(json.games)) {
+					persistStats(json as Stats);
+				} else {
+					persistStats({ totalGames: json.gamesPlayed, winsWhite: 0, winsBlack: 0, games: [] });
+				}
 			}
 			if (Array.isArray(json.moves)) {
 				const fresh = createStandardGame();
