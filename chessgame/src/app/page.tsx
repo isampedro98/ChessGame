@@ -36,7 +36,7 @@ export default function Home(): JSX.Element {
 	type GameSummary = { id: string; moves: number; capturedWhite: number; capturedBlack: number; winner: 'WHITE' | 'BLACK' | null; startedAt: string; endedAt: string | null };
 	type Stats = { totalGames: number; winsWhite: number; winsBlack: number; games: GameSummary[] };
 
-	const loadStats = (): Stats => {
+	const loadStats = useCallback((): Stats => {
 		if (typeof window === 'undefined') return { totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] };
 		try {
 			const raw = window.localStorage.getItem(STATS_KEY);
@@ -51,12 +51,12 @@ export default function Home(): JSX.Element {
 		} catch {
 			return { totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] };
 		}
-	};
+	}, []);
 
 	// Avoid hydration mismatch: init with empty and load after mount
 	const [stats, setStats] = useState<Stats>({ totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] });
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	useEffect(() => { setStats(loadStats()); }, []);
+	useEffect(() => { setStats(loadStats()); }, [loadStats]);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const [maxMoves, setMaxMoves] = useState<number | null>(() => {
 		if (typeof window === 'undefined') return null;
@@ -70,12 +70,12 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   // End-of-game summary (declare before effects that depend on it)
   const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
 
-	const persistStats = (value: Stats) => {
+	const persistStats = useCallback((value: Stats) => {
 		setStats(value);
 		try { window.localStorage.setItem(STATS_KEY, JSON.stringify(value)); } catch {}
 	};
 
-  const summarizeGame = (): GameSummary => {
+  const summarizeGame = useCallback((): GameSummary => {
     const history = game.moveHistory();
     const board = game.getBoard();
     const whiteHasKing = board.getPiecesByTeam(Team.White).some((p) => p.type === PieceType.King);
@@ -95,7 +95,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 			startedAt: currentGameStartRef.current,
 			endedAt: new Date().toISOString(),
 		};
-	};
+	}, [game]);
 
 	const handleNewGame = () => {
 		if (game.moveHistory().length > 0) {
@@ -174,35 +174,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   };
   // Bot move effect: when it's bot's turn, pick a random move and simulate clicks
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!botEnabled) return;
-    if (pendingSummary) return;
-    if (game.getTurn() !== botSide) return;
-    const board = game.getBoard();
-    const pieces = board.getPiecesByTeam(botSide);
-    const allMoves: Move[] = [];
-    for (const p of pieces) {
-      const ms = p.generateMoves(board);
-      for (const m of ms) allMoves.push(m);
-    }
-    if (allMoves.length === 0) return;
-    const move = allMoves[Math.floor(Math.random() * allMoves.length)];
-    const origin = move.from as typeof move.from;
-    const dest = move.to as typeof move.to;
-    const makeSquareInfo = (pos: typeof origin) => {
-      const piece = board.getPiece(pos);
-      return {
-        id: pos.toAlgebraic(),
-        position: pos,
-        piece,
-        isDark: ((pos.row + pos.column) % 2) === 1,
-      } as SquareInfo;
-    };
-    const originSq = makeSquareInfo(origin);
-    const destSq = makeSquareInfo(dest);
-    onSquareClick(originSq);
-    setTimeout(() => onSquareClick(destSq), 0);
-  }, [history.length, botEnabled, botSide, pendingSummary]);
+  const performBotMove = useCallback(() => {\n    if (!botEnabled) return;\n    if (pendingSummary) return;\n    if (game.getTurn() !== botSide) return;\n    const board = game.getBoard();\n    const pieces = board.getPiecesByTeam(botSide);\n    const allMoves: any[] = [];\n    for (const p of pieces) {\n      const ms = p.generateMoves(board);\n      for (const m of ms) allMoves.push(m);\n    }\n    if (allMoves.length === 0) return;\n    const move = allMoves[Math.floor(Math.random() * allMoves.length)];\n    const origin = move.from as typeof move.from;\n    const dest = move.to as typeof move.to;\n    const makeSquareInfo = (pos: typeof origin) => {\n      const piece = board.getPiece(pos);\n      return { id: pos.toAlgebraic(), position: pos, piece, isDark: ((pos.row + pos.column) % 2) === 1 } as SquareInfo;\n    };\n    const originSq = makeSquareInfo(origin);\n    const destSq = makeSquareInfo(dest);\n    onSquareClick(originSq);\n    setTimeout(() => onSquareClick(destSq), 0);\n  }, [botEnabled, pendingSummary, game, botSide, onSquareClick]);\n\n  useEffect(() => { performBotMove(); }, [history.length, performBotMove]);
 
   const handleRematchSwapColors = () => {
     setPendingSummary(null);
