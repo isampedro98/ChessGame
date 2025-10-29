@@ -174,7 +174,65 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   };
   // Bot move effect: when it's bot's turn, pick a random move and simulate clicks
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const performBotMove = useCallback(() => {\n    if (!botEnabled) return;\n    if (pendingSummary) return;\n    if (game.getTurn() !== botSide) return;\n    const board = game.getBoard();\n    const pieces = board.getPiecesByTeam(botSide);\n    const allMoves: any[] = [];\n    for (const p of pieces) {\n      const ms = p.generateMoves(board);\n      for (const m of ms) allMoves.push(m);\n    }\n    if (allMoves.length === 0) return;\n    const move = allMoves[Math.floor(Math.random() * allMoves.length)];\n    const origin = move.from as typeof move.from;\n    const dest = move.to as typeof move.to;\n    const makeSquareInfo = (pos: typeof origin) => {\n      const piece = board.getPiece(pos);\n      return { id: pos.toAlgebraic(), position: pos, piece, isDark: ((pos.row + pos.column) % 2) === 1 } as SquareInfo;\n    };\n    const originSq = makeSquareInfo(origin);\n    const destSq = makeSquareInfo(dest);\n    onSquareClick(originSq);\n    if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {\n      requestAnimationFrame(() => requestAnimationFrame(() => onSquareClick(destSq)));\n    } else {\n      setTimeout(() => onSquareClick(destSq), 16);\n    }\n  }, [botEnabled, pendingSummary, game, botSide, onSquareClick]);\n\n  useEffect(() => { performBotMove(); }, [history.length, performBotMove]);
+  const performBotMove = useCallback(() => {
+    if (!botEnabled) return;
+    if (pendingSummary) return;
+    if (selectedSquareKey) return;
+    if (botBusyRef.current) return;
+    if (game.getTurn() !== botSide) return;
+
+    const board = game.getBoard();
+    const pieces = board.getPiecesByTeam(botSide);
+
+    type AnyMove = { from: any; to: any; pieceId: string };
+    const allMoves: AnyMove[] = [];
+    for (const p of pieces) {
+      const ms = p.generateMoves(board) as AnyMove[];
+      for (const m of ms) allMoves.push(m);
+    }
+    if (allMoves.length === 0) return;
+
+    const pieceValue = (pt: PieceType): number => {
+      switch (pt) {
+        case PieceType.Pawn: return 1;
+        case PieceType.Knight:
+        case PieceType.Bishop: return 3;
+        case PieceType.Rook: return 5;
+        case PieceType.Queen: return 9;
+        case PieceType.King: return 100;
+        default: return 0;
+      }
+    };
+
+    let bestScore = -Infinity;
+    const candidates: AnyMove[] = [];
+    for (const m of allMoves) {
+      const target = board.getPiece(m.to);
+      const score = target ? pieceValue(target.type) : 0;
+      if (score > bestScore) { bestScore = score; candidates.length = 0; candidates.push(m); }
+      else if (score === bestScore) { candidates.push(m); }
+    }
+
+    const move = candidates[Math.floor(Math.random() * candidates.length)];
+    const origin = move.from as typeof move.from;
+    const dest = move.to as typeof move.to;
+    const makeSquareInfo = (pos: typeof origin) => {
+      const piece = board.getPiece(pos);
+      return { id: pos.toAlgebraic(), position: pos, piece, isDark: ((pos.row + pos.column) % 2) === 1 } as SquareInfo;
+    };
+    const originSq = makeSquareInfo(origin);
+    const destSq = makeSquareInfo(dest);
+
+    botBusyRef.current = true;
+    onSquareClick(originSq);
+    if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
+      requestAnimationFrame(() => requestAnimationFrame(() => { onSquareClick(destSq); botBusyRef.current = false; }));
+    } else {
+      setTimeout(() => { onSquareClick(destSq); botBusyRef.current = false; }, 16);
+    }
+  }, [botEnabled, pendingSummary, selectedSquareKey, game, botSide, onSquareClick]);
+
+  useEffect(() => { performBotMove(); }, [history.length, performBotMove]);
 
   const handleRematchSwapColors = () => {
     setPendingSummary(null);
