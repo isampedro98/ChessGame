@@ -19,6 +19,8 @@ interface InfoPanelProps {
 
 export const InfoPanel = ({ currentTurn, instruction, message, movesCount, maxMoves, onChangeMaxMoves, onNewGame, onExportGame, onImportGame, onPlayBot, botEnabled = false }: InfoPanelProps) => {
   const { t } = useTranslation();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-300">
@@ -27,10 +29,8 @@ export const InfoPanel = ({ currentTurn, instruction, message, movesCount, maxMo
         <span className="ml-1 font-semibold text-slate-100">{t(`team.${currentTurn.toLowerCase()}`)}</span>
       </p>
       <p className="mt-1 text-slate-400">
-        Moves: <span className="text-slate-200" suppressHydrationWarning>{movesCount}</span>
-        {maxMoves != null && (
-          <span className="text-slate-200" suppressHydrationWarning> / {maxMoves}</span>
-        )}
+        Moves: <span className="text-slate-200">{mounted ? movesCount : 0}</span>
+        <span className="text-slate-200"> / {mounted ? (maxMoves ?? '∞') : '∞'}</span>
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <label className="inline-flex items-center gap-2">

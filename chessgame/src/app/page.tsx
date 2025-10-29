@@ -69,6 +69,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   const [botSide, setBotSide] = useState<Team>(Team.Black);
   // End-of-game summary (declare before effects that depend on it)
   const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
+  const botBusyRef = useRef(false);
 
 	const persistStats = useCallback((value: Stats) => {
 		setStats(value);
