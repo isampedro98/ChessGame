@@ -1,31 +1,34 @@
 import * as THREE from 'three';
 
+// Cooler wood palette (less orange)
 export const createSquareMaterial = () => {
-    const lightColor = new THREE.Color('#3a4253');
-    const darkColor = new THREE.Color('#d7dde8');
+    const lightColor = new THREE.Color('#e9dfcc'); // light beech/maple (cooler)
+    const darkColor = new THREE.Color('#8a6e55');  // cooler walnut/brown
     return { lightColor, darkColor };
 };
 
+// Painted-ebony and boxwood-like pieces with subtle clearcoat
 export const createPieceMaterial = (team: 'WHITE' | 'BLACK') =>
     new THREE.MeshPhysicalMaterial({
-        color: team === 'WHITE' ? '#f1f1f4' : '#2f3542',
-        metalness: 0.35,
-        roughness: 0.35,
-        clearcoat: 0.5,
-        clearcoatRoughness: 0.4,
-        sheen: 0.2,
+        color: team === 'WHITE' ? '#e8e3d6' : '#1b1b1b',
+        metalness: 0.0,
+        roughness: team === 'WHITE' ? 0.60 : 0.45,
+        clearcoat: team === 'WHITE' ? 0.10 : 0.25,
+        clearcoatRoughness: 0.5,
+        envMapIntensity: 0.12,
     });
 
+// Warm wood table
 export const tableBaseMaterial = new THREE.MeshStandardMaterial({
-    color: '#8b5a2b',
-    roughness: 0.7,
-    metalness: 0.05,
-    emissive: '#2e1d0f',
-    emissiveIntensity: 0.08,
+    color: '#7b5a40',
+    roughness: 0.78,
+    metalness: 0.04,
+    emissive: '#2a1b10',
+    emissiveIntensity: 0.04,
 });
 
 export const tableBevelMaterial = new THREE.MeshStandardMaterial({
-    color: '#a4723f',
-    roughness: 0.5,
-    metalness: 0.08,
+    color: '#9a7a5b',
+    roughness: 0.62,
+    metalness: 0.04,
 });
