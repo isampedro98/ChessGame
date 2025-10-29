@@ -8,11 +8,9 @@ export const createRenderer = (canvas: HTMLCanvasElement) => {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    // Use physically correct lighting model (Three r169+ uses useLegacyLights)
-    // @ts-ignore
-    if ('useLegacyLights' in renderer) {
-        // @ts-ignore
-        renderer.useLegacyLights = false;
+    // Use physically correct lighting model (Three r169+: renderer.useLegacyLights exists)
+    if ('useLegacyLights' in (renderer as unknown as Record<string, unknown>)) {
+        (renderer as unknown as { useLegacyLights?: boolean }).useLegacyLights = false;
     }
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;

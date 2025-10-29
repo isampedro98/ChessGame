@@ -210,8 +210,7 @@ export const createRook = (material: THREE.Material) => {
 
     // keep the base as-is; the issue was the upper body being wider than base
     const d = baseDia(H);                 // diameter used for ratios
-    const BASE_RADIUS = d * 0.5;          // actual base radius coming from baseProfile()
-    const CAP = d * 0.48;                 // hard cap: any radius above base must be <= 0.48·d
+    const CAP = d * 0.48;                 // hard cap: any radius above base must be <= 0.48*d
     const EPS = H * 0.0015;
 
     // helper to clamp any radius to the cap (keeps everything slimmer than base)

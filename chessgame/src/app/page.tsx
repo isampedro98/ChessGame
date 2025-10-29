@@ -55,6 +55,7 @@ export default function Home(): JSX.Element {
 
 	// Avoid hydration mismatch: init with empty and load after mount
 	const [stats, setStats] = useState<Stats>({ totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] });
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	useEffect(() => { setStats(loadStats()); }, []);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const [maxMoves, setMaxMoves] = useState<number | null>(() => {
@@ -172,6 +173,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 		ev.target.value = '';
   };
   // Bot move effect: when it's bot's turn, pick a random move and simulate clicks
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!botEnabled) return;
     if (pendingSummary) return;
@@ -212,6 +214,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     setBotSide(Team.Black);
   };
   // Detect end of game (winner or draw by max moves), persist stats, and prompt user
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const winner = game.getWinner();
     const reachedMax = maxMoves != null && history.length >= maxMoves;
