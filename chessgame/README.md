@@ -23,91 +23,17 @@ npm install
 ```bash
 npm run dev
 ```
-Visit http://localhost:3000 to explore the UI, play through moves, and see the synchronised 3D scene.
+Visit http://localhost:3000 to explore the UI, play through moves, and see the synchronized 3D scene.
 
-## Gameplay & Controls
-- Board: click origin, then destination (2D and 3D are in sync).
-- Info panel shows current turn, total moves, and an optional max-moves limit. You can:
-  - Start a New Game
-  - Export the current game as JSON
-  - Import a game JSON to replay moves
-  - Toggle Play vs Bot (Phase 1: random legal move; plays as Black by default)
-- End-of-game: when checkmate or max-moves is reached, the app records a summary and shows a prompt with:
-  - Start New Game
-  - Rematch (swap colors)
-  - Keep Viewing (no reset)
-
-## Export/Import Format
-Game export produces an array of moves using human-friendly fields:
-
+## Useful Scripts
+```bash
+npm run lint    # Run ESLint using the project configuration
 ```
-{
-  "moves": [
-    { "pieceName": "pawn", "team": "white", "from": "E2", "to": "E4" },
-    { "pieceName": "pawn", "team": "black", "from": "E7", "to": "E5" }
-  ]
-}
-```
-
-The importer also accepts a legacy format with `pieceId` and `row/column` objects. If `pieceId` is not present, the importer infers the piece on the `from` square.
-
-## Stats (localStorage)
-Stats are stored under `chess.stats` as:
-
-```
-{
-  "totalGames": 12,
-  "winsWhite": 6,
-  "winsBlack": 4,
-  "games": [
-    {
-      "id": "game-1712345678",
-      "moves": 34,
-      "capturedWhite": 5,
-      "capturedBlack": 7,
-      "winner": "WHITE" | "BLACK" | null,
-      "startedAt": "2025-03-01T10:20:30.000Z",
-      "endedAt": "2025-03-01T10:35:01.000Z"
-    }
-  ]
-}
-```
-
-- Export/Import stats from the UI.
-- The Stats panel lists totals and the last few game summaries.
-
-## Optional Wood Textures (Board)
-- The board supports PBR wood maps. Place textures in `public/textures/` with these names to enable them:
-  - `wood_oak_light.jpg`, `wood_oak_light_normal.jpg`, `wood_oak_light_rough.jpg`
-  - `wood_walnut_dark.jpg`, `wood_walnut_dark_normal.jpg`, `wood_walnut_dark_rough.jpg`
-- If textures are missing, solid-color fallbacks are used.
-
-## Three.js Notes
-- ACES Filmic tone mapping is enabled; legacy lights disabled for more physical results.
-- Materials for pieces emulate painted-ebony and boxwood; the board uses a satin wood finish.
 
 ## Build & Static Export
 - The project is configured for static export (`next.config.ts` sets `output: 'export'`).
 - `npm run build` produces the site in `out/`, ready for any static host.
 - When deployed to GitHub Pages, `basePath` is set automatically from `GITHUB_REPOSITORY`.
-
-## CI/CD (GitHub Actions)
-A single workflow handles lint, build, and deploy to GitHub Pages.
-
-- Triggers: on `push` to `main` and manual runs via `workflow_dispatch`.
-- Steps: `checkout` → `setup-node@20` (npm cache) → restore `.next` cache → `npm ci` → `npm run lint` → `npm run build` → `configure-pages` → `upload-pages-artifact` (from `chessgame/out`) → `deploy-pages`.
-- Concurrency: prevents overlapping deployments (`cancel-in-progress: true`).
-- Permissions: `pages: write` and `id-token: write` to publish to Pages.
-
-How to enable:
-- In GitHub, go to `Settings > Pages` and set `Source: GitHub Actions`.
-- Ensure default branch is `main`; no secrets are needed (static build).
-
-Workflow location: `.github/workflows/nextjs.yml`.
-
-### Note on `npm ci` and the lockfile
-- The pipeline uses `npm ci` for reproducible installs. If you add dependencies or devDependencies, run `npm install` locally and commit the updated `package-lock.json`.
-- If `package.json` changes but the lockfile does not, `npm ci` will fail with an `EUSAGE` error and messages like “Missing ... from lock file”.
 
 ## Project Layout
 ```
@@ -128,17 +54,115 @@ chessgame/
 ```
 Each folder contains its own README with additional context and extension points.
 
-## Useful Scripts
-```bash
-npm run lint    # Run ESLint using the project configuration
+## Domain Model (Source of Truth)
+- `Game` owns the authoritative state: `Board` + side to move + move history.
+- `Board` stores `Piece` instances by `Position`; pieces carry id, team, type, and position.
+- `Move` defines `from`/`to` plus `validate`, `execute`, and `revert`; history records the move and resolution (captures).
+- UI (`app/`) and 3D scene (`chess-scene/`) are pure projections of `Game` state. No hidden state outside the domain.
+
+## Rules Coverage (Current)
+- Piece-legal movement for all standard pieces.
+- Self-check moves are filtered during move generation (UI and bot). `Game.executeMove` does not hard-reject self-check yet.
+- Special moves are not implemented yet: castling, en passant, promotion.
+- Winner detection uses check/checkmate logic plus a king-capture fallback.
+
+## Gameplay & Controls
+- Interaction is in the 3D scene; the 2D board is a read-only mirror with highlights.
+- 3D: click origin, then destination (2D/3D are derived from the same game state).
+- Info panel shows current turn, total moves, and an optional max-moves limit. You can:
+  - Start a New Game
+  - Export the current game as JSON
+  - Import a game JSON to replay moves
+  - Toggle Play vs Bot (Phase 1: capture-first legal move; plays as Black by default)
+- End-of-game: when checkmate or max-moves is reached, the app records a summary and shows a prompt with:
+  - Start New Game
+  - Rematch (swap colors)
+  - Keep Viewing (no reset)
+
+## Export/Import Format (Game)
+Game export produces a schema-versioned payload:
+
+```
+{
+  "schemaVersion": 1,
+  "moves": [
+    { "pieceName": "pawn", "team": "white", "from": "E2", "to": "E4" },
+    { "pieceName": "pawn", "team": "black", "from": "E7", "to": "E5" }
+  ]
+}
 ```
 
-## Current Status
-- The TypeScript engine models positions, moves, and board state under `src/domain/chess`.
-- The Next.js page (`src/app/page.tsx`) renders history panels, the 3D scene, and live board state.
-- Three.js helpers in `src/chess-scene` provide reusable builders for geometries, lighting, and materials.
-- The internationalisation layer under `src/app/i18n` ships English and Spanish translations.
-- Roadmap highlights: special-move polish (castling, en passant animations), richer piece materials, and interactive camera controls.
+Importer notes:
+- Legacy format with `pieceId` and `row/column` objects is still accepted.
+- If `schemaVersion` is missing, version 1 is assumed.
+- If `pieceId` is not present, the importer infers the piece on the `from` square.
+
+## Stats (localStorage)
+Stats are stored under `chess.stats` as:
+
+```
+{
+  "schemaVersion": 1,
+  "totalGames": 12,
+  "winsWhite": 6,
+  "winsBlack": 4,
+  "games": [
+    {
+      "id": "game-1712345678",
+      "moves": 34,
+      "capturedWhite": 5,
+      "capturedBlack": 7,
+      "winner": "WHITE" | "BLACK" | null,
+      "startedAt": "2025-03-01T10:20:30.000Z",
+      "endedAt": "2025-03-01T10:35:01.000Z"
+    }
+  ]
+}
+```
+
+- Export/Import stats from the UI.
+- Schema versioning is in place for future migrations.
+
+## Optional Wood Textures (Board)
+- The board supports PBR wood maps. Place textures in `public/textures/` with these names to enable them:
+  - `wood_oak_light.jpg`, `wood_oak_light_normal.jpg`, `wood_oak_light_rough.jpg`
+  - `wood_walnut_dark.jpg`, `wood_walnut_dark_normal.jpg`, `wood_walnut_dark_rough.jpg`
+- If textures are missing, solid-color fallbacks are used.
+
+## Three.js Notes
+- ACES Filmic tone mapping is enabled; legacy lights disabled for more physical results.
+- Materials for pieces emulate painted-ebony and boxwood; the board uses a satin wood finish.
+
+## Testing Strategy
+- Current: basic chess-scene smoke tests in `src/chess-scene/__tests__/builders.test.ts` (geometry + lighting). Test runner wiring is still pending.
+- Planned: domain legality tests (check, self-check, special moves) plus lightweight scene builder snapshots.
+
+## Status and Roadmap
+| Area | Done | In progress | Planned |
+| --- | --- | --- | --- |
+| Engine rules | core piece movement, captures, self-check filter, check/checkmate detection | special moves (castling, en passant, promotion) | FEN/PGN import/export |
+| Bot | capture-first legal move | simple evaluation tuning | minimax depth 2/3 |
+| 3D scene | board + pieces + materials + lighting | raycast selection, move animations | InstancedMesh / mergeGeometries |
+| UI/UX | export/import, stats, i18n, static export | settings panel | keyboard shortcuts, mobile polish |
+| Testing | scene builder smoke tests | domain legality tests | perft benchmarks |
+
+## CI/CD (GitHub Actions)
+A single workflow handles lint, build, and deploy to GitHub Pages.
+
+- Triggers: on `push` to `main` and manual runs via `workflow_dispatch`.
+- Steps: `checkout` -> `setup-node@20` (npm cache) -> restore `.next` cache -> `npm ci` -> `npm run lint` -> `npm run build` -> `configure-pages` -> `upload-pages-artifact` (from `chessgame/out`) -> `deploy-pages`.
+- Concurrency: prevents overlapping deployments (`cancel-in-progress: true`).
+- Permissions: `pages: write` and `id-token: write` to publish to Pages.
+
+How to enable:
+- In GitHub, go to `Settings > Pages` and set `Source: GitHub Actions`.
+- Ensure default branch is `main`; no secrets are needed (static build).
+
+Workflow location: `.github/workflows/nextjs.yml`.
+
+### Note on `npm ci` and the lockfile
+- The pipeline uses `npm ci` for reproducible installs. If you add dependencies or devDependencies, run `npm install` locally and commit the updated `package-lock.json`.
+- If `package.json` changes but the lockfile does not, `npm ci` will fail with an `EUSAGE` error and messages like "Missing ... from lock file".
 
 ## Standards and Conventions
 - Layered architecture and separation of concerns:
@@ -164,38 +188,20 @@ npm run lint    # Run ESLint using the project configuration
 
 ## References and Credits
 - Inspiration for Three.js piece modeling: https://github.com/Sushant-Coder-01/chess3d
-  - Similar techniques are used here (lathe profiles, composite groups, crowns/merlons) adapted to this project’s style.
+  - Similar techniques are used here (lathe profiles, composite groups, crowns/merlons) adapted to this project's style.
+
+## Demo and License
+- Demo: TBD (GitHub Pages once deployed)
+- License: TBD
 
 ## Notes
 - 3D rendering:
   - The canvas mounts in `ChessScene.tsx` and consumes builders from `@/chess-scene`.
   - Canvas size syncs on `resize`; the render loop is properly cleaned up.
-- Domain ↔ scene sync:
+- Domain <-> scene sync:
   - The UI derives `scenePieces` from game state (see `useChessUI`).
   - Selection and allowed destinations are memoised to avoid extra renders.
 - Static export and GitHub Pages:
   - `basePath` derives from `GITHUB_REPOSITORY`, useful for user/gh-pages repos.
 - Import aliases:
   - Use `@/` instead of deep relative paths (configured in `tsconfig.json`).
-
-## Roadmap (Suggested)
-- Chess engine
-  - Check/checkmate, stalemate, and full legality (avoid self-check).
-  - Dedicated special moves: `CastleMove`, `EnPassantMove`, `PromotionMove`.
-  - FEN/PGN support: import positions, export history and games.
-- Three.js scene
-  - OrbitControls for the camera and preset viewpoints (overview, side). [Added]
-  - Physical environment (RoomEnvironment + PMREM) for better reflections. [Added]
-  - Raycasting to select pieces/squares directly in 3D.
-  - Movement/capture animations (tweens) synced with history.
-  - Physical materials (clearcoat, sheen), advanced textures (wood/metal/PBR), and coordinate labels. [Partially added]
-  - Future optimisation: `InstancedMesh` for pawns and `mergeGeometries` to reduce draw calls.
-- UI/UX
-  - Mobile mode and responsive improvements; keyboard shortcuts.
-  - Persist game state in `localStorage` and quick reset.
-  - Settings panel (theme, language, animation speed).
-- Quality and DX
-  - Unit tests (Vitest/Jest) for `domain/` and `chess-scene` utilities.
-  - Storybook for components (`components/`) and piece visuals.
-  - Integrate Prettier and pre-commit hooks (lint-staged) for formatting/validation.
-- CI/CD (GitHub Actions) with lint + build + deploy to GitHub Pages (using `out/`).

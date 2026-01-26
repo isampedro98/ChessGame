@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import type { SquareInfo } from '@/app/hooks/useChessUI';
-import { FILES, RANKS, getPieceSymbol, pieceCssClass } from '@/app/chess-ui/helpers';
+import { FILES, RANKS, pieceCssClass } from '@/app/chess-ui/helpers';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import { Team } from '@/domain/chess';
 
@@ -10,7 +10,6 @@ interface BoardGridProps {
   availableDestinations: Set<string>;
   selectedSquareKey: string | null;
   currentTurn: Team;
-  onSquareClick(square: SquareInfo): void;
 }
 
 export const BoardGrid = ({
@@ -18,7 +17,6 @@ export const BoardGrid = ({
   availableDestinations,
   selectedSquareKey,
   currentTurn,
-  onSquareClick,
 }: BoardGridProps) => {
   const { t } = useTranslation();
 
@@ -42,25 +40,21 @@ export const BoardGrid = ({
             : '';
 
           return (
-            <button
+            <div
               key={square.id}
-              type="button"
-              onClick={() => onSquareClick(square)}
-              className={`relative aspect-square flex items-center justify-center text-lg font-semibold transition ${base} ${highlight} focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900`}
+              className={`relative aspect-square flex items-center justify-center text-lg font-semibold ${base} ${highlight}`}
               aria-label={t('board.squareAria', { id: square.id })}
             >
               {square.piece ? (
                 <span
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-base font-semibold ${pieceCssClass(
+                  className={`inline-flex h-4 w-4 rounded-full shadow-inner ${pieceCssClass(
                     square.piece,
                   )}`}
-                >
-                  {getPieceSymbol(square.piece)}
-                </span>
+                />
               ) : isTarget ? (
                 <span className={`h-3 w-3 rounded-full ${hasEnemyPiece ? 'bg-rose-300/80' : 'bg-emerald-200/70'}`} />
               ) : null}
-            </button>
+            </div>
           );
         })}
       </div>

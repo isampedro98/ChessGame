@@ -7,19 +7,19 @@ Concrete chess pieces that extend the core `Piece` base class. Each class encaps
 ```
 pieces/
   SlidingPiece.ts   Shared helpers for linear movers (rook, bishop, queen)
-  King.ts           Generates king moves, including castling checks
+  King.ts           Generates king moves (castling TODO)
   Queen.ts          Queen-specific move generation built on `SlidingPiece`
   Rook.ts           Orthogonal sliding moves
   Bishop.ts         Diagonal sliding moves
   Knight.ts         L-shaped jumps that ignore occupancy between squares
-  Pawn.ts           Forward pushes, captures, promotion hooks, and en passant
+  Pawn.ts           Forward pushes and diagonal captures (promotion/en passant TODO)
   index.ts          Barrel export for `@/domain/chess/pieces`
 ```
 
 ## Design Notes
 - All pieces lean on utilities from the core module (`Position`, `Board`, `Move`).
 - The shared `SlidingPiece` removes duplication across rook, bishop, and queen paths.
-- Keep promotion or special-move logic local to `Pawn` so higher layers simply iterate over legal moves.
+- Keep promotion or special-move logic local to `Pawn` so higher layers can iterate over legal moves once implemented.
 
 ## Extension Points
 - Introduce variants (for example fairy pieces) by subclassing `Piece` and reusing helpers here.

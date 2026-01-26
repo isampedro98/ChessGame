@@ -12,6 +12,7 @@ type GameSummary = {
 };
 
 export type Stats = {
+  schemaVersion: number;
   totalGames: number;
   winsWhite: number;
   winsBlack: number;
@@ -48,7 +49,7 @@ export function StatsPanel({ stats, onExport }: { stats: Stats; onExport: () => 
           <ul className="space-y-1">
             {lastGames.map((g) => (
               <li key={g.id} className="flex items-center justify-between rounded-md bg-slate-800/40 px-2 py-1.5 text-sm">
-                <span className="text-slate-300">{g.startedAt.slice(0,10)} · {g.moves} moves</span>
+                <span className="text-slate-300">{g.startedAt.slice(0,10)} - {g.moves} moves</span>
                 <span className="text-slate-400">W:{g.capturedWhite} / B:{g.capturedBlack}</span>
                 <span className="text-slate-200">{g.winner ?? 'DRAW'}</span>
               </li>

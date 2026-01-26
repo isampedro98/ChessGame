@@ -15,6 +15,54 @@ import { Position } from '@/domain/chess';
 import { Team } from '@/domain/chess';
 import { PieceType } from '@/domain/chess';
 
+const STATS_KEY = 'chess.stats';
+const STATS_SCHEMA_VERSION = 1;
+const GAME_SCHEMA_VERSION = 1;
+
+type GameSummary = {
+	id: string;
+	moves: number;
+	capturedWhite: number;
+	capturedBlack: number;
+	winner: 'WHITE' | 'BLACK' | null;
+	startedAt: string;
+	endedAt: string | null;
+};
+
+type Stats = {
+	schemaVersion: number;
+	totalGames: number;
+	winsWhite: number;
+	winsBlack: number;
+	games: GameSummary[];
+};
+
+const buildEmptyStats = (): Stats => ({
+	schemaVersion: STATS_SCHEMA_VERSION,
+	totalGames: 0,
+	winsWhite: 0,
+	winsBlack: 0,
+	games: [],
+});
+
+const coerceStats = (value: unknown): Stats => {
+	if (!value || typeof value !== 'object') return buildEmptyStats();
+	const parsed = value as Partial<Stats> & { gamesPlayed?: number };
+	if (Array.isArray(parsed.games)) {
+		return {
+			schemaVersion: STATS_SCHEMA_VERSION,
+			totalGames: typeof parsed.totalGames === 'number' ? parsed.totalGames : parsed.games.length,
+			winsWhite: typeof parsed.winsWhite === 'number' ? parsed.winsWhite : 0,
+			winsBlack: typeof parsed.winsBlack === 'number' ? parsed.winsBlack : 0,
+			games: parsed.games,
+		};
+	}
+	if (typeof parsed.gamesPlayed === 'number') {
+		return { ...buildEmptyStats(), totalGames: parsed.gamesPlayed };
+	}
+	return buildEmptyStats();
+};
+
 export default function Home(): JSX.Element {
 	const [game, setGame] = useState(() => createStandardGame());
 	const {
@@ -29,32 +77,24 @@ export default function Home(): JSX.Element {
 		currentTurn,
 		captureDestinations,
 	} = useChessUI(game);
-		const { t } = useTranslation();
+	const { t } = useTranslation();
 
 	// Stats in localStorage (extended schema with per-game summaries)
-	const STATS_KEY = 'chess.stats';
-	type GameSummary = { id: string; moves: number; capturedWhite: number; capturedBlack: number; winner: 'WHITE' | 'BLACK' | null; startedAt: string; endedAt: string | null };
-	type Stats = { totalGames: number; winsWhite: number; winsBlack: number; games: GameSummary[] };
 
 	const loadStats = useCallback((): Stats => {
-		if (typeof window === 'undefined') return { totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] };
+		if (typeof window === 'undefined') return buildEmptyStats();
 		try {
 			const raw = window.localStorage.getItem(STATS_KEY);
-			if (!raw) return { totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] };
+			if (!raw) return buildEmptyStats();
 			const parsed = JSON.parse(raw);
-			if (parsed && Array.isArray(parsed.games)) {
-				return parsed as Stats;
-			}
-			// legacy shape { gamesPlayed }
-			const total = typeof parsed?.gamesPlayed === 'number' ? parsed.gamesPlayed : 0;
-			return { totalGames: total, winsWhite: 0, winsBlack: 0, games: [] };
+			return coerceStats(parsed);
 		} catch {
-			return { totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] };
+			return buildEmptyStats();
 		}
 	}, []);
 
 	// Avoid hydration mismatch: init with empty and load after mount
-	const [stats, setStats] = useState<Stats>({ totalGames: 0, winsWhite: 0, winsBlack: 0, games: [] });
+	const [stats, setStats] = useState<Stats>(buildEmptyStats());
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	useEffect(() => { setStats(loadStats()); }, [loadStats]);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -64,16 +104,21 @@ export default function Home(): JSX.Element {
 	});
 	useEffect(() => { try { window.localStorage.setItem('chess.maxMoves', String(maxMoves ?? '')); } catch {} }, [maxMoves]);
 const currentGameStartRef = useRef<string>(new Date().toISOString());
-  // Bot (Phase 1 - random legal move)
+  // Bot (Phase 1 - capture-first legal move)
   const [botEnabled, setBotEnabled] = useState(false);
   const [botSide, setBotSide] = useState<Team>(Team.Black);
   // End-of-game summary (declare before effects that depend on it)
   const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
   const botBusyRef = useRef(false);
+  const selectedKeyRef = useRef<string | null>(null);
+  const availDestRef = useRef<Set<string>>(new Set());
+  useEffect(() => { selectedKeyRef.current = selectedSquareKey; }, [selectedSquareKey]);
+  useEffect(() => { availDestRef.current = availableDestinations; }, [availableDestinations]);
 
 	const persistStats = useCallback((value: Stats) => {
-		setStats(value);
-		try { window.localStorage.setItem(STATS_KEY, JSON.stringify(value)); } catch {}
+		const normalized = { ...value, schemaVersion: STATS_SCHEMA_VERSION };
+		setStats(normalized);
+		try { window.localStorage.setItem(STATS_KEY, JSON.stringify(normalized)); } catch {}
 	}, []);
 
   const summarizeGame = useCallback((): GameSummary => {
@@ -103,7 +148,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 			const summary = summarizeGame();
 			const winsWhite = stats.winsWhite + (summary.winner === 'WHITE' ? 1 : 0);
 			const winsBlack = stats.winsBlack + (summary.winner === 'BLACK' ? 1 : 0);
-			persistStats({ totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
+			persistStats({ ...stats, totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
 		}
 		setGame(createStandardGame());
 		currentGameStartRef.current = new Date().toISOString();
@@ -131,7 +176,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 				to: move.to.toAlgebraic().toUpperCase(),
 			};
 		});
-		const blob = new Blob([JSON.stringify({ moves: records }, null, 2)], { type: 'application/json' });
+		const blob = new Blob([JSON.stringify({ schemaVersion: GAME_SCHEMA_VERSION, moves: records }, null, 2)], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a'); a.href = url; a.download = 'chess-game.json'; a.click();
 		URL.revokeObjectURL(url);
@@ -146,11 +191,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 		try {
 			const json = JSON.parse(text);
 			if (json && (typeof json.gamesPlayed === 'number' || Array.isArray(json.games))) {
-				if (Array.isArray(json.games)) {
-					persistStats(json as Stats);
-				} else {
-					persistStats({ totalGames: json.gamesPlayed, winsWhite: 0, winsBlack: 0, games: [] });
-				}
+				persistStats(coerceStats(json));
 			}
 			if (Array.isArray(json.moves)) {
 				const fresh = createStandardGame();
@@ -173,7 +214,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 		} catch {}
 		ev.target.value = '';
   };
-  // Bot move effect: when it's bot's turn, pick a random move and simulate clicks
+  // Bot move effect: when it's bot's turn, pick a capture-first move and simulate clicks
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const performBotMove = useCallback(() => {
     if (!botEnabled) return;
@@ -185,10 +226,9 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     const board = game.getBoard();
     const pieces = board.getPiecesByTeam(botSide);
 
-    type AnyMove = { from: any; to: any; pieceId: string };
-    const allMoves: AnyMove[] = [];
+    const allMoves: Move[] = [];
     for (const p of pieces) {
-      const ms = p.generateMoves(board) as AnyMove[];
+      const ms = game.generateMovesFor(p.id) as Move[];
       for (const m of ms) allMoves.push(m);
     }
     if (allMoves.length === 0) return;
@@ -206,7 +246,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     };
 
     let bestScore = -Infinity;
-    const candidates: AnyMove[] = [];
+    const candidates: Move[] = [];
     for (const m of allMoves) {
       const target = board.getPiece(m.to);
       const score = target ? pieceValue(target.type) : 0;
@@ -215,8 +255,8 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     }
 
     const move = candidates[Math.floor(Math.random() * candidates.length)];
-    const origin = move.from as typeof move.from;
-    const dest = move.to as typeof move.to;
+    const origin = move.from;
+    const dest = move.to;
     const makeSquareInfo = (pos: typeof origin) => {
       const piece = board.getPiece(pos);
       return { id: pos.toAlgebraic(), position: pos, piece, isDark: ((pos.row + pos.column) % 2) === 1 } as SquareInfo;
@@ -226,11 +266,32 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 
     botBusyRef.current = true;
     onSquareClick(originSq);
-    if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
-      requestAnimationFrame(() => requestAnimationFrame(() => { onSquareClick(destSq); botBusyRef.current = false; }));
-    } else {
-      setTimeout(() => { onSquareClick(destSq); botBusyRef.current = false; }, 16);
-    }
+    const originKey = origin.toKey();
+    const destKey = dest.toKey();
+    let tries = 0;
+    const run = () => {
+      // Keep asserting selection until it sticks, then wait for destinations and click
+      if (selectedKeyRef.current !== originKey) {
+        onSquareClick(originSq);
+      }
+      const ready = selectedKeyRef.current === originKey && availDestRef.current.has(destKey);
+      if (ready) {
+        onSquareClick(destSq);
+        botBusyRef.current = false;
+        return;
+      }
+      tries += 1;
+      if (tries > 120) { // ~2s fallback: bail out this turn to avoid hang
+        botBusyRef.current = false;
+        return;
+      }
+      if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
+        requestAnimationFrame(run);
+      } else {
+        setTimeout(run, 16);
+      }
+    };
+    run();
   }, [botEnabled, pendingSummary, selectedSquareKey, game, botSide, onSquareClick]);
 
   useEffect(() => { performBotMove(); }, [history.length, performBotMove]);
@@ -253,7 +314,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
       const summary = summarizeGame();
       const winsWhite = stats.winsWhite + (summary.winner === 'WHITE' ? 1 : 0);
       const winsBlack = stats.winsBlack + (summary.winner === 'BLACK' ? 1 : 0);
-      persistStats({ totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
+      persistStats({ ...stats, totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
       setPendingSummary(summary);
     }
   }, [history.length, maxMoves, pendingSummary, stats]);
@@ -299,9 +360,9 @@ return (
 							availableDestinations={availableDestinations}
 							selectedSquareKey={selectedSquareKey}
 							currentTurn={currentTurn}
-							onSquareClick={onSquareClick}
 						/>
                     <p className="text-sm text-slate-500">{t('board.subtitle')}</p>
+                    <p className="text-xs text-slate-500">{t('board.interactionHint')}</p>
                     {pendingSummary ? (
                       <div className="mt-2 rounded-md border border-emerald-700/40 bg-emerald-900/30 p-3 text-sm text-emerald-200">
                         <div className="mb-2">Game finished. {pendingSummary.winner ?? 'DRAW'}</div>

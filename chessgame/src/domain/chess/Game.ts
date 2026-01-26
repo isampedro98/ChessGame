@@ -119,6 +119,15 @@ export class Game {
     if (!piece || piece.team !== this.turn) {
       return [];
     }
-    return piece.generateMoves(this.board);
+    const candidates = piece.generateMoves(this.board);
+    return candidates.filter((move) => {
+      const clone = this.board.clone();
+      try {
+        move.execute(clone);
+      } catch {
+        return false;
+      }
+      return !this.isInCheck(clone, piece.team);
+    });
   }
 }

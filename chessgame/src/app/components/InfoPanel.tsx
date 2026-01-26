@@ -2,6 +2,7 @@
 
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import { Team } from '@/domain/chess';
+import React from 'react';
 
 interface InfoPanelProps {
   currentTurn: Team;
