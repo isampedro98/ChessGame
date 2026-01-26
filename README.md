@@ -204,7 +204,7 @@ Workflow location: `.github/workflows/nextjs.yml`.
   - Similar techniques are used here (lathe profiles, composite groups, crowns/merlons) adapted to this project's style.
 
 ## License
-- TBD
+- MIT
 
 ## Notes
 - 3D rendering:
