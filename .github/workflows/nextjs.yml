@@ -43,7 +43,9 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./chessgame
-        run: npm ci
+        env:
+          NPM_CONFIG_OPTIONAL: "true"
+        run: npm ci --include=optional
 
       - name: Lint
         working-directory: ./chessgame
