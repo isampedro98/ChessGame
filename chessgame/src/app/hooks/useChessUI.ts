@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import { Game, Team, PieceType, Position, type Move, type Piece, EnPassantMove } from '@/domain/chess';
+import type { Board } from '@/domain/chess/core/Board';
 
 import {
   describeMove,
@@ -31,6 +32,14 @@ export type ScenePiece = {
   type: PieceType;
   team: Team;
   position: { row: number; column: number };
+};
+
+export type MoveEvent = {
+  move: Move;
+  boardBefore: Board;
+  turn: Team;
+  legalMoves: Move[];
+  moveIndex: number;
 };
 
 const buildSquares = (game: Game, version: number): SquareInfo[] => {
@@ -84,12 +93,13 @@ const buildScenePieces = (game: Game, version: number): ScenePiece[] => {
     }));
 };
 
-export const useChessUI = (game: Game) => {
+export const useChessUI = (game: Game, options?: { onMove?: (event: MoveEvent) => void }) => {
   const [version, setVersion] = useState(0);
   const [selection, setSelection] = useState<SelectionState | null>(null);
   const [candidateMoves, setCandidateMoves] = useState<Move[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const { t } = useTranslation();
+  const onMove = options?.onMove;
 
   const squares = useMemo(() => buildSquares(game, version), [game, version]);
 
@@ -135,12 +145,27 @@ export const useChessUI = (game: Game) => {
         if (!move) {
           return;
         }
+        const turn = game.getTurn();
+        const boardBefore = game.getBoard().clone();
+        const legalMoves: Move[] = [];
+        game.getBoard()
+          .getPiecesByTeam(turn)
+          .forEach((piece) => {
+            legalMoves.push(...game.generateMovesFor(piece.id));
+          });
         try {
           game.executeMove(move);
           setSelection(null);
           setCandidateMoves([]);
           setVersion((value) => value + 1);
           setMessage(null);
+          onMove?.({
+            move,
+            boardBefore,
+            turn,
+            legalMoves,
+            moveIndex: game.moveHistory().length - 1,
+          });
         } catch (error) {
           setMessage(error instanceof Error ? error.message : t('board.message.invalidMove'));
         }
@@ -168,7 +193,7 @@ export const useChessUI = (game: Game) => {
         setMessage(null);
       }
     },
-    [availableDestinations, candidateMoves, game, selection, t],
+    [availableDestinations, candidateMoves, game, onMove, selection, t],
   );
 
   const currentTurn = game.getTurn();

@@ -7,7 +7,8 @@ import { HistoryPanel } from '@/app/components/HistoryPanel';
 import { InfoPanel } from '@/app/components/InfoPanel';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import { StatsPanel } from '@/app/components/StatsPanel';
-import { SquareInfo, useChessUI } from '@/app/hooks/useChessUI';
+import { SquareInfo, useChessUI, type MoveEvent } from '@/app/hooks/useChessUI';
+import { analyzeTrainingMove } from '@/app/chess-ui/training';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import ChessScene from '@/app/components/ChessScene';
 import {
@@ -73,7 +74,9 @@ const coerceStats = (value: unknown): Stats => {
 
 export default function Home(): JSX.Element {
 	const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0';
+	const [trainingFeedback, setTrainingFeedback] = useState<{ tone: 'good' | 'ok' | 'warn' | 'bad'; text: string } | null>(null);
 	const [game, setGame] = useState(() => createStandardGame());
+	const { t } = useTranslation();
 	const {
 		squares,
 		availableDestinations,
@@ -85,8 +88,65 @@ export default function Home(): JSX.Element {
 		selectedSquareKey,
 		currentTurn,
 		captureDestinations,
-	} = useChessUI(game);
-	const { t } = useTranslation();
+	} = useChessUI(game, {
+		onMove: (event: MoveEvent) => {
+			if (!botEnabled) return;
+			const analysis = analyzeTrainingMove({
+				board: event.boardBefore,
+				move: event.move,
+				legalMoves: event.legalMoves,
+				turn: event.turn,
+				moveIndex: event.moveIndex,
+			});
+			const isBotMove = event.turn === botSide;
+			const preferNegative = analysis.delta > 1.4;
+			const reasonKeys = isBotMove
+				? analysis.positiveReasons
+				: preferNegative
+					? analysis.negativeReasons
+					: analysis.positiveReasons;
+			const fallbackReason = preferNegative ? 'training.reason.missed' : 'training.reason.quiet';
+			const reasonText =
+				reasonKeys.length > 0
+					? reasonKeys.map((key) => t(`training.reason.${key}`)).join(', ')
+					: t(fallbackReason);
+
+			if (isBotMove) {
+				setTrainingFeedback({
+					tone: 'ok',
+					text: t('training.bot', { reasons: reasonText }),
+				});
+				return;
+			}
+
+			const delta = analysis.delta;
+			let label: 'excellent' | 'good' | 'ok' | 'inaccuracy' | 'mistake' | 'blunder' = 'ok';
+			let tone: 'good' | 'ok' | 'warn' | 'bad' = 'ok';
+			if (delta <= 0.3) {
+				label = 'excellent';
+				tone = 'good';
+			} else if (delta <= 0.9) {
+				label = 'good';
+				tone = 'good';
+			} else if (delta <= 1.5) {
+				label = 'ok';
+				tone = 'ok';
+			} else if (delta <= 2.3) {
+				label = 'inaccuracy';
+				tone = 'warn';
+			} else if (delta <= 3.2) {
+				label = 'mistake';
+				tone = 'warn';
+			} else {
+				label = 'blunder';
+				tone = 'bad';
+			}
+			setTrainingFeedback({
+				tone,
+				text: t(`training.player.${label}`, { reasons: reasonText }),
+			});
+		},
+	});
 
 	// Stats in localStorage (extended schema with per-game summaries)
 
@@ -160,6 +220,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 		}
 		setGame(createStandardGame());
 		currentGameStartRef.current = new Date().toISOString();
+		setTrainingFeedback(null);
 	};
 
   const handleExportStats = () => {
@@ -343,10 +404,12 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     setPendingSummary(null);
     setGame(createSwappedGame());
     currentGameStartRef.current = new Date().toISOString();
+    setTrainingFeedback(null);
   };
   const handleToggleBot = () => {
     setBotEnabled((v) => !v);
     setBotSide(Team.Black);
+    setTrainingFeedback(null);
   };
   // Detect end of game (winner or draw by max moves), persist stats, and prompt user
   useEffect(() => {
@@ -447,6 +510,7 @@ return (
                             currentTurn={currentTurn}
                             instruction={instruction}
                             message={message}
+                            trainingFeedback={trainingFeedback}
                             movesCount={history.length}
                             maxMoves={maxMoves}
                             onChangeMaxMoves={(v) => setMaxMoves(v)}

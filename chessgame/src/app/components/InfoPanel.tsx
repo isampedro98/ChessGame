@@ -8,6 +8,7 @@ interface InfoPanelProps {
   currentTurn: Team;
   instruction: string;
   message: string | null;
+  trainingFeedback?: { tone: 'good' | 'ok' | 'warn' | 'bad'; text: string } | null;
   movesCount: number;
   maxMoves: number | null;
   onChangeMaxMoves: (value: number | null) => void;
@@ -18,7 +19,7 @@ interface InfoPanelProps {
   botEnabled?: boolean;
 }
 
-export const InfoPanel = ({ currentTurn, instruction, message, movesCount, maxMoves, onChangeMaxMoves, onNewGame, onExportGame, onImportGame, onPlayBot, botEnabled = false }: InfoPanelProps) => {
+export const InfoPanel = ({ currentTurn, instruction, message, trainingFeedback, movesCount, maxMoves, onChangeMaxMoves, onNewGame, onExportGame, onImportGame, onPlayBot, botEnabled = false }: InfoPanelProps) => {
   const { t } = useTranslation();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -56,12 +57,27 @@ export const InfoPanel = ({ currentTurn, instruction, message, movesCount, maxMo
           aria-pressed={botEnabled}
           className={`rounded-md px-3 py-1.5 text-xs ${botEnabled ? 'bg-emerald-700 text-white hover:bg-emerald-600' : 'bg-slate-800 text-slate-100 hover:bg-slate-700'}`}
         >
-          {botEnabled ? 'Bot: ON' : (t('menu.playBot') || 'Play vs Bot')}
+          {botEnabled ? (t('menu.playBotOn') || 'Training: ON') : (t('menu.playBot') || 'Train vs AI')}
         </button>
       </div>
       <p className="mt-3 text-slate-400">{instruction}</p>
       {message ? (
         <p className="mt-2 rounded bg-amber-400/10 px-3 py-2 text-amber-200">{message}</p>
+      ) : null}
+      {trainingFeedback ? (
+        <p
+          className={`mt-2 rounded px-3 py-2 ${
+            trainingFeedback.tone === 'good'
+              ? 'bg-emerald-400/10 text-emerald-200'
+              : trainingFeedback.tone === 'warn'
+              ? 'bg-amber-400/10 text-amber-200'
+              : trainingFeedback.tone === 'bad'
+              ? 'bg-rose-500/10 text-rose-200'
+              : 'bg-slate-800/50 text-slate-200'
+          }`}
+        >
+          {trainingFeedback.text}
+        </p>
       ) : null}
     </div>
   );
