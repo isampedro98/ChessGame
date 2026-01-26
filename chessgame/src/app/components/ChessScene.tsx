@@ -18,6 +18,8 @@ import {
 	createPieceMaterial,
 	positionPiece,
 	applyStudioEnvironment,
+	SQUARE_SIZE,
+	BOARD_TOP_Y,
 } from '@/chess-scene';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { updateMarkers } from '@/chess-scene/markers';
@@ -59,6 +61,12 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 	const raycasterRef = useRef<THREE.Raycaster | null>(null);
 	const mouseRef = useRef<THREE.Vector2 | null>(null);
   const markersRootRef = useRef<THREE.Group | null>(null);
+  const animationsRef = useRef<
+    Map<
+      string,
+      { from: THREE.Vector3; to: THREE.Vector3; startedAt: number; duration: number }
+    >
+  >(new Map());
   const isOrbitingRef = useRef(false);
   const lastPointerDownRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   // Keep latest props/state snapshots to avoid stale closures inside handlers
@@ -79,7 +87,9 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 		scene.add(createTable());
 		const board = createBoard();
 		scene.add(board);
-		boardSquaresRef.current = board.children.slice();
+		boardSquaresRef.current = board.children.filter(
+			(child) => child.userData?.instanceToCell || typeof child.userData?.row === 'number',
+		);
 
 		materialsRef.current = new Map<'WHITE' | 'BLACK', THREE.Material>([
 			['WHITE', createPieceMaterial('WHITE')],
@@ -142,8 +152,12 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
       ];
       const hits = raycaster.intersectObjects(targets, true);
       if (hits.length > 0) {
-        const hit = hits[0].object as THREE.Object3D;
-        const { row, col } = deriveBoardCoordsFromObject(hit);
+        const firstHit = hits[0];
+        const hit = firstHit.object as THREE.Object3D;
+        const { row, col } = deriveBoardCoordsFromObject(hit, {
+          instanceId: firstHit.instanceId ?? undefined,
+          point: firstHit.point,
+        });
         const fn = onPickSquareRef.current;
         if (fn) fn(row, col, selectedKeyRef.current ?? undefined);
       }
@@ -151,11 +165,29 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('click', onClick);
 
+		const applyAnimations = () => {
+			const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+			animationsRef.current.forEach((anim, id) => {
+				const obj = piecesRef.current.get(id);
+				if (!obj) {
+					animationsRef.current.delete(id);
+					return;
+				}
+				const t = Math.min(1, (now - anim.startedAt) / anim.duration);
+				const eased = t * t * (3 - 2 * t);
+				obj.position.lerpVectors(anim.from, anim.to, eased);
+				if (t >= 1) {
+					animationsRef.current.delete(id);
+				}
+			});
+		};
+
 		let raf = 0;
 		const animate = () => {
 			if (!rendererRef.current || !sceneRef.current || !cameraRef.current)
 				return;
 			controlsRef.current?.update();
+			applyAnimations();
 			rendererRef.current.render(sceneRef.current, cameraRef.current);
 			raf = requestAnimationFrame(animate);
 		};
@@ -210,6 +242,13 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 		updateMarkers(root, selectedSquareKey, availableDestinations, captureDestinations);
 	}, [selectedSquareKey, availableDestinations, captureDestinations]);
 
+	const targetPosition = (row: number, col: number): THREE.Vector3 =>
+		new THREE.Vector3(
+			(col - 3.5) * SQUARE_SIZE,
+			BOARD_TOP_Y + 0.01,
+			(row - 3.5) * SQUARE_SIZE,
+		);
+
 	useEffect(() => {
 		const scene = sceneRef.current;
 		const materials = materialsRef.current;
@@ -217,6 +256,8 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 
 		const piecesMap = piecesRef.current;
 		const remaining = new Set(piecesMap.keys());
+		const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+		const duration = 220;
 
 		initialPieces.forEach((p) => {
 			const material = materials.get(p.team)!;
@@ -227,8 +268,20 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 				obj.name = p.id;
 				scene.add(obj);
 				piecesMap.set(p.id, obj);
+				positionPiece(obj, p.position.row, p.position.column);
 			}
-			positionPiece(obj, p.position.row, p.position.column);
+			const target = targetPosition(p.position.row, p.position.column);
+			if (obj.position.distanceTo(target) > 0.001) {
+				animationsRef.current.set(p.id, {
+					from: obj.position.clone(),
+					to: target,
+					startedAt: now,
+					duration,
+				});
+			} else {
+				obj.position.copy(target);
+				animationsRef.current.delete(p.id);
+			}
 			remaining.delete(p.id);
 		});
 
@@ -236,6 +289,7 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 			const obj = piecesMap.get(id);
 			if (obj) scene.remove(obj);
 			piecesMap.delete(id);
+			animationsRef.current.delete(id);
 		});
 	}, [initialPieces]);
 

@@ -103,7 +103,6 @@ export default function Home(): JSX.Element {
 
 	// Avoid hydration mismatch: init with empty and load after mount
 	const [stats, setStats] = useState<Stats>(buildEmptyStats());
-	// eslint-disable-next-line react-hooks/exhaustive-deps
 	useEffect(() => { setStats(loadStats()); }, [loadStats]);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const [maxMoves, setMaxMoves] = useState<number | null>(() => {
@@ -259,7 +258,6 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 		ev.target.value = '';
   };
   // Bot move effect: when it's bot's turn, pick a capture-first move and simulate clicks
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const performBotMove = useCallback(() => {
     if (!botEnabled) return;
     if (pendingSummary) return;
@@ -350,7 +348,6 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     setBotSide(Team.Black);
   };
   // Detect end of game (winner or draw by max moves), persist stats, and prompt user
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const winner = game.getWinner();
     const reachedMax = maxMoves != null && history.length >= maxMoves;
@@ -361,7 +358,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
       persistStats({ ...stats, totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
       setPendingSummary(summary);
     }
-  }, [history.length, maxMoves, pendingSummary, stats]);
+  }, [game, history.length, maxMoves, pendingSummary, persistStats, stats, summarizeGame]);
 
 	// Stable lookup by board key for 3D clicks
 	const squaresByKey = new Map(squares.map((s) => [s.position.toKey(), s]));
@@ -432,6 +429,13 @@ return (
 								captureDestinations={captureDestinations}
 							/>
 						</div>
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept="application/json"
+							onChange={handleImportFile}
+							className="hidden"
+						/>
 						<div className="space-y-4">
                         <InfoPanel
                             currentTurn={currentTurn}

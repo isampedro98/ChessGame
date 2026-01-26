@@ -216,6 +216,10 @@ export class Game {
 
     move.validate(this.board);
     const resolution = move.execute(this.board);
+    if (this.isInCheck(this.board, this.turn)) {
+      move.revert(this.board, resolution);
+      throw new Error('Move leaves the king in check.');
+    }
     this.history.push({ move, resolution });
     this.turn = oppositeTeam(this.turn);
   }

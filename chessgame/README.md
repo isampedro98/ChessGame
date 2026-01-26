@@ -2,6 +2,9 @@
 
 Next.js application that pairs a TypeScript chess engine with a fully rendered Three.js board. The repository contains the domain logic, a modular 3D scene, and the UI layer that ties everything together.
 
+## Demo
+https://isampedro98.github.io/ChessGame/
+
 ## Tech Stack
 - Next.js 15 (App Router, `output: 'export'` for static hosting)
 - React 19
@@ -63,7 +66,7 @@ Each folder contains its own README with additional context and extension points
 
 ## Rules Coverage (Current)
 - Piece-legal movement for all standard pieces.
-- Self-check moves are filtered during move generation (UI and bot). `Game.executeMove` does not hard-reject self-check yet.
+- Self-check moves are filtered during move generation (UI and bot) and rejected in `Game.executeMove`.
 - Special moves are implemented in `Game` (castling, en passant, promotion). Promotion defaults to a queen.
 - Winner detection uses check/checkmate logic plus a king-capture fallback.
 
@@ -137,17 +140,42 @@ Stats are stored under `chess.stats` as:
 ## Three.js Notes
 - ACES Filmic tone mapping is enabled; legacy lights disabled for more physical results.
 - Materials for pieces emulate painted-ebony and boxwood; the board uses a satin wood finish.
+- Board squares are batched via `InstancedMesh` (light/dark) to reduce draw calls.
+- Piece movement uses short tweens to mirror the latest move history.
 
 ## Testing Strategy
 - Current: Vitest runner with domain special-move coverage and chess-scene smoke tests (`src/chess-scene/__tests__/builders.test.ts`).
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
+## Versioning
+Current version: `0.2.0` (2026-01-26)
+
+### v0.2.0 (2026-01-26)
+Changes
+- Special moves (castling, en passant, promotion) plus self-check rejection in `Game.executeMove`.
+- Move export/import extended for special moves.
+- 3D tweens for piece movement; board squares instanced for fewer draw calls.
+- Vitest runner with domain special-move tests.
+
+Done
+- Special-move legality for standard chess.
+- 3D move tweens synced with domain history.
+- Instanced board squares (2 meshes).
+
+OnGoing
+- Piece-level instancing/merge pass (pawns and repeated meshes).
+
+TODO
+- FEN/PGN import/export.
+- Bot evaluation upgrades (minimax).
+- UI settings panel and animation speed control.
+
 ## Status and Roadmap
 | Area | Done | In progress | Planned |
 | --- | --- | --- | --- |
-| Engine rules | core piece movement, captures, self-check filter, check/checkmate detection, special moves (castling, en passant, promotion) | stalemate/perft diagnostics | FEN/PGN import/export |
+| Engine rules | core piece movement, captures, self-check enforcement, check/checkmate detection, special moves (castling, en passant, promotion) | stalemate/perft diagnostics | FEN/PGN import/export |
 | Bot | capture-first legal move | simple evaluation tuning | minimax depth 2/3 |
-| 3D scene | board + pieces + materials + lighting | raycast selection, move animations | InstancedMesh / mergeGeometries |
+| 3D scene | board + pieces + materials + lighting, move tweens, instanced board squares | raycast selection | InstancedMesh / mergeGeometries for pieces |
 | UI/UX | export/import, stats, i18n, static export | settings panel | keyboard shortcuts, mobile polish |
 | Testing | Vitest runner, scene builder smoke tests, special-move tests | domain legality tests | perft benchmarks |
 
@@ -195,9 +223,8 @@ Workflow location: `.github/workflows/nextjs.yml`.
 - Inspiration for Three.js piece modeling: https://github.com/Sushant-Coder-01/chess3d
   - Similar techniques are used here (lathe profiles, composite groups, crowns/merlons) adapted to this project's style.
 
-## Demo and License
-- Demo: TBD (GitHub Pages once deployed)
-- License: TBD
+## License
+- TBD
 
 ## Notes
 - 3D rendering:
