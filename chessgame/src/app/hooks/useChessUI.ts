@@ -101,6 +101,38 @@ export const useChessUI = (game: Game, options?: { onMove?: (event: MoveEvent) =
   const { t } = useTranslation();
   const onMove = options?.onMove;
 
+  const applyMove = useCallback(
+    (move: Move): boolean => {
+      const turn = game.getTurn();
+      const boardBefore = game.getBoard().clone();
+      const legalMoves: Move[] = [];
+      game.getBoard()
+        .getPiecesByTeam(turn)
+        .forEach((piece) => {
+          legalMoves.push(...game.generateMovesFor(piece.id));
+        });
+      try {
+        game.executeMove(move);
+        setSelection(null);
+        setCandidateMoves([]);
+        setVersion((value) => value + 1);
+        setMessage(null);
+        onMove?.({
+          move,
+          boardBefore,
+          turn,
+          legalMoves,
+          moveIndex: game.moveHistory().length - 1,
+        });
+        return true;
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : t('board.message.invalidMove'));
+        return false;
+      }
+    },
+    [game, onMove, t],
+  );
+
   const squares = useMemo(() => buildSquares(game, version), [game, version]);
 
   const availableDestinations = useMemo(
@@ -145,30 +177,7 @@ export const useChessUI = (game: Game, options?: { onMove?: (event: MoveEvent) =
         if (!move) {
           return;
         }
-        const turn = game.getTurn();
-        const boardBefore = game.getBoard().clone();
-        const legalMoves: Move[] = [];
-        game.getBoard()
-          .getPiecesByTeam(turn)
-          .forEach((piece) => {
-            legalMoves.push(...game.generateMovesFor(piece.id));
-          });
-        try {
-          game.executeMove(move);
-          setSelection(null);
-          setCandidateMoves([]);
-          setVersion((value) => value + 1);
-          setMessage(null);
-          onMove?.({
-            move,
-            boardBefore,
-            turn,
-            legalMoves,
-            moveIndex: game.moveHistory().length - 1,
-          });
-        } catch (error) {
-          setMessage(error instanceof Error ? error.message : t('board.message.invalidMove'));
-        }
+        applyMove(move);
         return;
       }
 
@@ -193,7 +202,7 @@ export const useChessUI = (game: Game, options?: { onMove?: (event: MoveEvent) =
         setMessage(null);
       }
     },
-    [availableDestinations, candidateMoves, game, onMove, selection, t],
+    [applyMove, availableDestinations, candidateMoves, game, selection, t],
   );
 
   const currentTurn = game.getTurn();
@@ -217,6 +226,7 @@ export const useChessUI = (game: Game, options?: { onMove?: (event: MoveEvent) =
     instruction,
     message,
     onSquareClick: handleSquareClick,
+    applyMove,
     scenePieces,
     selectedSquareKey: selection?.originKey ?? null,
     currentTurn,

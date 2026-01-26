@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-01-26
+### Changes
+- Train vs AI uses a deterministic state-machine evaluator (no generative AI).
+- Bot now plays its own moves and provides move feedback for both sides.
+
+### Done
+- Training feedback surfaced in the info panel.
+- Bot move selection based on heuristic scoring.
+
+### Ongoing
+- Strength tuning and reason coverage improvements.
+
+### TODO
+- Training presets (aggressive, solid, endgame).
+
 ## [0.2.0] - 2026-01-26
 ### Changes
 - Added special moves (castling, en passant, promotion) and enforced self-check rejection in `Game.executeMove`.

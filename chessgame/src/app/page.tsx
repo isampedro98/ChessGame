@@ -8,7 +8,7 @@ import { InfoPanel } from '@/app/components/InfoPanel';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import { StatsPanel } from '@/app/components/StatsPanel';
 import { SquareInfo, useChessUI, type MoveEvent } from '@/app/hooks/useChessUI';
-import { analyzeTrainingMove } from '@/app/chess-ui/training';
+import { analyzeTrainingMove, chooseTrainingMove } from '@/app/chess-ui/training';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import ChessScene from '@/app/components/ChessScene';
 import {
@@ -84,6 +84,7 @@ export default function Home(): JSX.Element {
 		instruction,
 		message,
 		onSquareClick,
+		applyMove,
 		scenePieces,
 		selectedSquareKey,
 		currentTurn,
@@ -172,16 +173,12 @@ export default function Home(): JSX.Element {
 	});
 	useEffect(() => { try { window.localStorage.setItem('chess.maxMoves', String(maxMoves ?? '')); } catch {} }, [maxMoves]);
 const currentGameStartRef = useRef<string>(new Date().toISOString());
-  // Bot (Phase 1 - capture-first legal move)
+  // Training bot (state machine)
   const [botEnabled, setBotEnabled] = useState(false);
   const [botSide, setBotSide] = useState<Team>(Team.Black);
   // End-of-game summary (declare before effects that depend on it)
   const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
   const botBusyRef = useRef(false);
-  const selectedKeyRef = useRef<string | null>(null);
-  const availDestRef = useRef<Set<string>>(new Set());
-  useEffect(() => { selectedKeyRef.current = selectedSquareKey; }, [selectedSquareKey]);
-  useEffect(() => { availDestRef.current = availableDestinations; }, [availableDestinations]);
 
 	const persistStats = useCallback((value: Stats) => {
 		const normalized = { ...value, schemaVersion: STATS_SCHEMA_VERSION };
@@ -323,7 +320,6 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   const performBotMove = useCallback(() => {
     if (!botEnabled) return;
     if (pendingSummary) return;
-    if (selectedSquareKey) return;
     if (botBusyRef.current) return;
     if (game.getTurn() !== botSide) return;
 
@@ -337,66 +333,21 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     }
     if (allMoves.length === 0) return;
 
-    const pieceValue = (pt: PieceType): number => {
-      switch (pt) {
-        case PieceType.Pawn: return 1;
-        case PieceType.Knight:
-        case PieceType.Bishop: return 3;
-        case PieceType.Rook: return 5;
-        case PieceType.Queen: return 9;
-        case PieceType.King: return 100;
-        default: return 0;
-      }
-    };
-
-    let bestScore = -Infinity;
-    const candidates: Move[] = [];
-    for (const m of allMoves) {
-      const target = board.getPiece(m.to);
-      const score = target ? pieceValue(target.type) : 0;
-      if (score > bestScore) { bestScore = score; candidates.length = 0; candidates.push(m); }
-      else if (score === bestScore) { candidates.push(m); }
-    }
-
-    const move = candidates[Math.floor(Math.random() * candidates.length)];
-    const origin = move.from;
-    const dest = move.to;
-    const makeSquareInfo = (pos: typeof origin) => {
-      const piece = board.getPiece(pos);
-      return { id: pos.toAlgebraic(), position: pos, piece, isDark: ((pos.row + pos.column) % 2) === 1 } as SquareInfo;
-    };
-    const originSq = makeSquareInfo(origin);
-    const destSq = makeSquareInfo(dest);
-
     botBusyRef.current = true;
-    onSquareClick(originSq);
-    const originKey = origin.toKey();
-    const destKey = dest.toKey();
-    let tries = 0;
-    const run = () => {
-      // Keep asserting selection until it sticks, then wait for destinations and click
-      if (selectedKeyRef.current !== originKey) {
-        onSquareClick(originSq);
-      }
-      const ready = selectedKeyRef.current === originKey && availDestRef.current.has(destKey);
-      if (ready) {
-        onSquareClick(destSq);
-        botBusyRef.current = false;
-        return;
-      }
-      tries += 1;
-      if (tries > 120) { // ~2s fallback: bail out this turn to avoid hang
-        botBusyRef.current = false;
-        return;
-      }
-      if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
-        requestAnimationFrame(run);
-      } else {
-        setTimeout(run, 16);
-      }
-    };
-    run();
-  }, [botEnabled, pendingSummary, selectedSquareKey, game, botSide, onSquareClick]);
+    const selection = chooseTrainingMove({
+      board,
+      legalMoves: allMoves,
+      turn: botSide,
+      moveIndex: history.length,
+      config: { randomness: 0.2, preferTop: 0.4 },
+    });
+    if (!selection) {
+      botBusyRef.current = false;
+      return;
+    }
+    applyMove(selection.move);
+    botBusyRef.current = false;
+  }, [applyMove, botEnabled, botSide, game, history.length, pendingSummary]);
 
   useEffect(() => { performBotMove(); }, [history.length, performBotMove]);
 
@@ -428,7 +379,10 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 	const squaresByKey = new Map(squares.map((s) => [s.position.toKey(), s]));
 
 	const handlePickSquare = (row: number, column: number, originKey?: string) => {
-	const destKey = `${row},${column}`;
+		if (botEnabled && currentTurn === botSide) {
+			return;
+		}
+		const destKey = `${row},${column}`;
 	const makeSquare = (r: number, c: number) => {
 		const pos = Position.fromCoordinates(r, c);
 		return { id: pos.toAlgebraic(), position: pos, isDark: (r + c) % 2 === 1 } as SquareInfo;

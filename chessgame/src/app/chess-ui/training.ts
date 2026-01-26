@@ -32,6 +32,11 @@ export type TrainingAnalysis = {
   negativeReasons: ReasonKey[];
 };
 
+export type TrainingBotConfig = {
+  randomness: number;
+  preferTop: number;
+};
+
 const PIECE_VALUE: Record<PieceType, number> = {
   [PieceType.Pawn]: 1,
   [PieceType.Knight]: 3,
@@ -207,5 +212,46 @@ export const analyzeTrainingMove = (params: {
     delta: bestScore - evaluated.score,
     positiveReasons: positive,
     negativeReasons: negative,
+  };
+};
+
+export const chooseTrainingMove = (params: {
+  board: Board;
+  legalMoves: Move[];
+  turn: Team;
+  moveIndex: number;
+  config?: Partial<TrainingBotConfig>;
+}): { move: Move; analysis: TrainingAnalysis } | null => {
+  if (params.legalMoves.length === 0) return null;
+  const config: TrainingBotConfig = {
+    randomness: params.config?.randomness ?? 0.15,
+    preferTop: params.config?.preferTop ?? 0.35,
+  };
+
+  const phase = determinePhase(params.board, params.moveIndex);
+  let best = -Infinity;
+  const scored: Array<{ move: Move; score: number }> = [];
+
+  params.legalMoves.forEach((move) => {
+    const evaluated = evaluateMoveScore(params.board, move, phase, params.turn);
+    const jitter = (Math.random() - 0.5) * config.randomness;
+    const score = evaluated.score + jitter;
+    scored.push({ move, score });
+    if (score > best) best = score;
+  });
+
+  const threshold = best - config.preferTop;
+  const candidates = scored.filter((entry) => entry.score >= threshold);
+  const pick = candidates[Math.floor(Math.random() * candidates.length)] ?? scored[0];
+
+  return {
+    move: pick.move,
+    analysis: analyzeTrainingMove({
+      board: params.board,
+      move: pick.move,
+      legalMoves: params.legalMoves,
+      turn: params.turn,
+      moveIndex: params.moveIndex,
+    }),
   };
 };
