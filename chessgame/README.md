@@ -148,27 +148,7 @@ Stats are stored under `chess.stats` as:
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Versioning
-Current version: `0.2.0` (2026-01-26)
-
-### v0.2.0 (2026-01-26)
-Changes
-- Special moves (castling, en passant, promotion) plus self-check rejection in `Game.executeMove`.
-- Move export/import extended for special moves.
-- 3D tweens for piece movement; board squares instanced for fewer draw calls.
-- Vitest runner with domain special-move tests.
-
-Done
-- Special-move legality for standard chess.
-- 3D move tweens synced with domain history.
-- Instanced board squares (2 meshes).
-
-OnGoing
-- Piece-level instancing/merge pass (pawns and repeated meshes).
-
-TODO
-- FEN/PGN import/export.
-- Bot evaluation upgrades (minimax).
-- UI settings panel and animation speed control.
+Current version: `0.2.0` (2026-01-26). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |
