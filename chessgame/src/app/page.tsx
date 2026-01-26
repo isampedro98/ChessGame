@@ -72,6 +72,7 @@ const coerceStats = (value: unknown): Stats => {
 };
 
 export default function Home(): JSX.Element {
+	const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0';
 	const [game, setGame] = useState(() => createStandardGame());
 	const {
 		squares,
@@ -387,7 +388,12 @@ return (
 						<p className="text-sm uppercase tracking-[0.3em] text-slate-500">
 							{t('app.tagline')}
 						</p>
-						<h1 className="text-3xl font-semibold">{t('app.title')}</h1>
+						<div className="flex flex-wrap items-center gap-3">
+							<h1 className="text-3xl font-semibold">{t('app.title')}</h1>
+							<span className="rounded-full border border-slate-800 bg-slate-900/60 px-2 py-0.5 text-xs font-semibold tracking-[0.2em] text-slate-400">
+								v{appVersion}
+							</span>
+						</div>
 						<p className="max-w-3xl text-slate-400">{t('app.description')}</p>
 					</div>
                     <LanguageSwitcher />
