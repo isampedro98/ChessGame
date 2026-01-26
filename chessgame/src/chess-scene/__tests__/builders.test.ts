@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { describe, expect, test } from 'vitest';
 import {
   pawnGeometry,
   bishopGeometry,
@@ -31,4 +32,3 @@ describe('lighting builder', () => {
     expect(warmLight).toBeInstanceOf(THREE.SpotLight);
   });
 });
-

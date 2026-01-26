@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 
-import { Game, Team, PieceType, Position, type Move, type Piece } from '@/domain/chess';
+import { Game, Team, PieceType, Position, type Move, type Piece, EnPassantMove } from '@/domain/chess';
 
 import {
   describeMove,
@@ -102,6 +102,10 @@ export const useChessUI = (game: Game) => {
     const board = game.getBoard();
     const set = new Set<string>();
     candidateMoves.forEach((m) => {
+      if (m instanceof EnPassantMove) {
+        set.add(m.to.toKey());
+        return;
+      }
       const destPiece = board.getPiece(m.to);
       if (destPiece && destPiece.team !== game.getTurn()) {
         set.add(m.to.toKey());

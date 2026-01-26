@@ -6,12 +6,15 @@ Concrete move implementations that adhere to the `Move` contract from the core m
 ## Module Layout
 ```
 moves/
-  SimpleMove.ts   Default move with capture validation and undo metadata
+  SimpleMove.ts       Default move with capture validation and undo metadata
+  CastleMove.ts       Castling move (king + rook)
+  EnPassantMove.ts    En passant capture logic
+  PromotionMove.ts    Pawn promotion (default: queen)
   index.ts        Barrel export for `@/domain/chess/moves`
 ```
 
 ## Design Notes
-- `SimpleMove` demonstrates how to implement the `Move` interface; specialised moves (castling, en passant) should follow the same pattern.
+- `SimpleMove` demonstrates how to implement the `Move` interface; specialised moves follow the same pattern.
 - Move instances are intentionally small and immutable after construction, so they can be queued, replayed, or serialised.
 - Higher-level services (factories, game state) compose moves rather than duplicating execution rules.
 

@@ -10,10 +10,18 @@ import { StatsPanel } from '@/app/components/StatsPanel';
 import { SquareInfo, useChessUI } from '@/app/hooks/useChessUI';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import ChessScene from '@/app/components/ChessScene';
-import { createStandardGame, createSwappedGame, Move } from '@/domain/chess';
-import { Position } from '@/domain/chess';
-import { Team } from '@/domain/chess';
-import { PieceType } from '@/domain/chess';
+import {
+	createStandardGame,
+	createSwappedGame,
+	Move,
+	Position,
+	Team,
+	PieceType,
+	SimpleMove,
+	CastleMove,
+	EnPassantMove,
+	PromotionMove,
+} from '@/domain/chess';
 
 const STATS_KEY = 'chess.stats';
 const STATS_SCHEMA_VERSION = 1;
@@ -165,16 +173,27 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 
 	const handleExportGame = () => {
 		// Export with pieceName, team and algebraic squares (uppercase)
-		const records = game.moveHistory().map(({ move }) => {
+		const records = game.moveHistory().map(({ move, resolution }) => {
 			const idParts = String(move.pieceId).split('-');
 			const pieceName = idParts.length >= 2 ? idParts[1] : 'piece';
 			const teamStr = idParts.length >= 1 ? idParts[0] : 'unknown';
-			return {
+			const record: Record<string, unknown> = {
 				pieceName,
 				team: teamStr,
 				from: move.from.toAlgebraic().toUpperCase(),
 				to: move.to.toAlgebraic().toUpperCase(),
 			};
+			if (move instanceof CastleMove) {
+				record.type = 'castle';
+			} else if (move instanceof EnPassantMove) {
+				record.type = 'enPassant';
+			} else if (move instanceof PromotionMove) {
+				record.type = 'promotion';
+				if (resolution.promotedPiece) {
+					record.promotion = resolution.promotedPiece.type;
+				}
+			}
+			return record;
 		});
 		const blob = new Blob([JSON.stringify({ schemaVersion: GAME_SCHEMA_VERSION, moves: records }, null, 2)], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
@@ -195,8 +214,6 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 			}
 			if (Array.isArray(json.moves)) {
 				const fresh = createStandardGame();
-				const { Position } = await import('@/domain/chess');
-				const { SimpleMove } = await import('@/domain/chess/moves/SimpleMove');
 				for (const m of json.moves) {
 					const from = typeof m.from === 'string' ? Position.fromAlgebraic(m.from) : Position.fromCoordinates(m.from.row, m.from.column);
 					const to = typeof m.to === 'string' ? Position.fromAlgebraic(m.to) : Position.fromCoordinates(m.to.row, m.to.column);
@@ -206,7 +223,34 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 						pieceId = pieceAtFrom ? pieceAtFrom.id : null;
 					}
 					if (!pieceId) { continue; }
-					const move = new SimpleMove(pieceId, from, to);
+					const moveTypeRaw =
+						typeof m.type === 'string'
+							? m.type
+							: typeof m.promotion === 'string'
+								? 'promotion'
+								: 'simple';
+					const moveType = typeof moveTypeRaw === 'string' ? moveTypeRaw.toLowerCase() : moveTypeRaw;
+					let move: Move;
+					if (moveType === 'castle') {
+						const rookFrom = Position.fromCoordinates(from.row, to.column > from.column ? 7 : 0);
+						const rookTo = Position.fromCoordinates(from.row, to.column > from.column ? 5 : 3);
+						const rook = fresh.getBoard().getPiece(rookFrom);
+						if (!rook) {
+							continue;
+						}
+						move = new CastleMove(pieceId, from, to, rook.id, rookFrom, rookTo);
+					} else if (moveType === 'enpassant') {
+						const capturedPos = Position.fromCoordinates(from.row, to.column);
+						move = new EnPassantMove(pieceId, from, to, capturedPos);
+					} else if (moveType === 'promotion') {
+						const rawPromotion = typeof m.promotion === 'string' ? m.promotion.toUpperCase() : '';
+						const promoteTo = (Object.values(PieceType) as string[]).includes(rawPromotion)
+							? (rawPromotion as PieceType)
+							: PieceType.Queen;
+						move = new PromotionMove(pieceId, from, to, promoteTo);
+					} else {
+						move = new SimpleMove(pieceId, from, to);
+					}
 					try { fresh.executeMove(move); } catch {}
 				}
 				setGame(fresh);

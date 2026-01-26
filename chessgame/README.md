@@ -28,6 +28,7 @@ Visit http://localhost:3000 to explore the UI, play through moves, and see the s
 ## Useful Scripts
 ```bash
 npm run lint    # Run ESLint using the project configuration
+npm run test    # Run Vitest suites
 ```
 
 ## Build & Static Export
@@ -63,7 +64,7 @@ Each folder contains its own README with additional context and extension points
 ## Rules Coverage (Current)
 - Piece-legal movement for all standard pieces.
 - Self-check moves are filtered during move generation (UI and bot). `Game.executeMove` does not hard-reject self-check yet.
-- Special moves are not implemented yet: castling, en passant, promotion.
+- Special moves are implemented in `Game` (castling, en passant, promotion). Promotion defaults to a queen.
 - Winner detection uses check/checkmate logic plus a king-capture fallback.
 
 ## Gameplay & Controls
@@ -87,7 +88,10 @@ Game export produces a schema-versioned payload:
   "schemaVersion": 1,
   "moves": [
     { "pieceName": "pawn", "team": "white", "from": "E2", "to": "E4" },
-    { "pieceName": "pawn", "team": "black", "from": "E7", "to": "E5" }
+    { "pieceName": "pawn", "team": "black", "from": "E7", "to": "E5" },
+    { "type": "castle", "pieceName": "king", "team": "white", "from": "E1", "to": "G1" },
+    { "type": "enPassant", "pieceName": "pawn", "team": "white", "from": "E5", "to": "D6" },
+    { "type": "promotion", "promotion": "QUEEN", "pieceName": "pawn", "team": "white", "from": "A7", "to": "A8" }
   ]
 }
 ```
@@ -95,6 +99,7 @@ Game export produces a schema-versioned payload:
 Importer notes:
 - Legacy format with `pieceId` and `row/column` objects is still accepted.
 - If `schemaVersion` is missing, version 1 is assumed.
+- If `type` is missing, the move is treated as a standard move.
 - If `pieceId` is not present, the importer infers the piece on the `from` square.
 
 ## Stats (localStorage)
@@ -134,17 +139,17 @@ Stats are stored under `chess.stats` as:
 - Materials for pieces emulate painted-ebony and boxwood; the board uses a satin wood finish.
 
 ## Testing Strategy
-- Current: basic chess-scene smoke tests in `src/chess-scene/__tests__/builders.test.ts` (geometry + lighting). Test runner wiring is still pending.
-- Planned: domain legality tests (check, self-check, special moves) plus lightweight scene builder snapshots.
+- Current: Vitest runner with domain special-move coverage and chess-scene smoke tests (`src/chess-scene/__tests__/builders.test.ts`).
+- Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |
 | --- | --- | --- | --- |
-| Engine rules | core piece movement, captures, self-check filter, check/checkmate detection | special moves (castling, en passant, promotion) | FEN/PGN import/export |
+| Engine rules | core piece movement, captures, self-check filter, check/checkmate detection, special moves (castling, en passant, promotion) | stalemate/perft diagnostics | FEN/PGN import/export |
 | Bot | capture-first legal move | simple evaluation tuning | minimax depth 2/3 |
 | 3D scene | board + pieces + materials + lighting | raycast selection, move animations | InstancedMesh / mergeGeometries |
 | UI/UX | export/import, stats, i18n, static export | settings panel | keyboard shortcuts, mobile polish |
-| Testing | scene builder smoke tests | domain legality tests | perft benchmarks |
+| Testing | Vitest runner, scene builder smoke tests, special-move tests | domain legality tests | perft benchmarks |
 
 ## CI/CD (GitHub Actions)
 A single workflow handles lint, build, and deploy to GitHub Pages.
