@@ -262,10 +262,17 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 		initialPieces.forEach((p) => {
 			const material = materials.get(p.team)!;
 			let obj = piecesMap.get(p.id);
+      if (obj && (obj.userData?.pieceType !== p.type || obj.userData?.team !== p.team)) {
+        scene.remove(obj);
+        piecesMap.delete(p.id);
+        animationsRef.current.delete(p.id);
+        obj = undefined;
+      }
 			if (!obj) {
 				const make = factoryByType[p.type] ?? createPawn;
 				obj = make(material);
 				obj.name = p.id;
+        obj.userData = { ...(obj.userData ?? {}), pieceType: p.type, team: p.team };
 				scene.add(obj);
 				piecesMap.set(p.id, obj);
 				positionPiece(obj, p.position.row, p.position.column);

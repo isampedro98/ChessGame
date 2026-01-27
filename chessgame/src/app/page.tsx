@@ -76,6 +76,7 @@ export default function Home(): JSX.Element {
 	const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0';
 	const [trainingFeedback, setTrainingFeedback] = useState<{ tone: 'good' | 'ok' | 'warn' | 'bad'; text: string } | null>(null);
 	const [game, setGame] = useState(() => createStandardGame());
+  const [pendingPromotion, setPendingPromotion] = useState<PromotionMove | null>(null);
 	const { t } = useTranslation();
 	const {
 		squares,
@@ -147,6 +148,10 @@ export default function Home(): JSX.Element {
 				text: t(`training.player.${label}`, { reasons: reasonText }),
 			});
 		},
+    onPromotion: (move) => {
+      if (botEnabled && currentTurn === botSide) return;
+      setPendingPromotion(move);
+    },
 	});
 
 	// Stats in localStorage (extended schema with per-game summaries)
@@ -218,6 +223,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 		setGame(createStandardGame());
 		currentGameStartRef.current = new Date().toISOString();
 		setTrainingFeedback(null);
+    setPendingPromotion(null);
 	};
 
   const handleExportStats = () => {
@@ -356,11 +362,13 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     setGame(createSwappedGame());
     currentGameStartRef.current = new Date().toISOString();
     setTrainingFeedback(null);
+    setPendingPromotion(null);
   };
   const handleToggleBot = () => {
     setBotEnabled((v) => !v);
     setBotSide(Team.Black);
     setTrainingFeedback(null);
+    setPendingPromotion(null);
   };
   // Detect end of game (winner or draw by max moves), persist stats, and prompt user
   useEffect(() => {
@@ -379,6 +387,9 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 	const squaresByKey = new Map(squares.map((s) => [s.position.toKey(), s]));
 
 	const handlePickSquare = (row: number, column: number, originKey?: string) => {
+		if (pendingPromotion) {
+			return;
+		}
 		if (botEnabled && currentTurn === botSide) {
 			return;
 		}
@@ -395,7 +406,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 		queueMicrotask(() => onSquareClick(destSquare));
 		return;
 	}
-	onSquareClick(destSquare);
+onSquareClick(destSquare);
 };
 return (
 		<div className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
@@ -474,6 +485,56 @@ return (
                             onPlayBot={handleToggleBot}
                             botEnabled={botEnabled}
                         />
+                        {pendingPromotion ? (
+                          <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+                            <div className="text-sm font-semibold">{t('promotion.title')}</div>
+                            <div className="text-xs text-amber-200/80">{t('promotion.subtitle')}</div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                className="rounded-md border border-amber-300/40 bg-amber-400/20 px-3 py-1 text-xs text-amber-50 hover:bg-amber-400/30"
+                                onClick={() => {
+                                  applyMove(new PromotionMove(pendingPromotion.pieceId, pendingPromotion.from, pendingPromotion.to, PieceType.Queen));
+                                  setPendingPromotion(null);
+                                }}
+                              >
+                                {t('piece.queen')}
+                              </button>
+                              <button
+                                className="rounded-md border border-amber-300/40 bg-amber-400/20 px-3 py-1 text-xs text-amber-50 hover:bg-amber-400/30"
+                                onClick={() => {
+                                  applyMove(new PromotionMove(pendingPromotion.pieceId, pendingPromotion.from, pendingPromotion.to, PieceType.Rook));
+                                  setPendingPromotion(null);
+                                }}
+                              >
+                                {t('piece.rook')}
+                              </button>
+                              <button
+                                className="rounded-md border border-amber-300/40 bg-amber-400/20 px-3 py-1 text-xs text-amber-50 hover:bg-amber-400/30"
+                                onClick={() => {
+                                  applyMove(new PromotionMove(pendingPromotion.pieceId, pendingPromotion.from, pendingPromotion.to, PieceType.Bishop));
+                                  setPendingPromotion(null);
+                                }}
+                              >
+                                {t('piece.bishop')}
+                              </button>
+                              <button
+                                className="rounded-md border border-amber-300/40 bg-amber-400/20 px-3 py-1 text-xs text-amber-50 hover:bg-amber-400/30"
+                                onClick={() => {
+                                  applyMove(new PromotionMove(pendingPromotion.pieceId, pendingPromotion.from, pendingPromotion.to, PieceType.Knight));
+                                  setPendingPromotion(null);
+                                }}
+                              >
+                                {t('piece.knight')}
+                              </button>
+                              <button
+                                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1 text-xs text-slate-200 hover:bg-slate-700"
+                                onClick={() => setPendingPromotion(null)}
+                              >
+                                {t('promotion.cancel')}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
 							<HistoryPanel
 								history={history}
 								title={t('history.title')}

@@ -2,7 +2,16 @@
 
 import { useCallback, useMemo, useState } from 'react';
 
-import { Game, Team, PieceType, Position, type Move, type Piece, EnPassantMove } from '@/domain/chess';
+import {
+  Game,
+  Team,
+  PieceType,
+  Position,
+  type Move,
+  type Piece,
+  EnPassantMove,
+  PromotionMove,
+} from '@/domain/chess';
 import type { Board } from '@/domain/chess/core/Board';
 
 import {
@@ -93,13 +102,17 @@ const buildScenePieces = (game: Game, version: number): ScenePiece[] => {
     }));
 };
 
-export const useChessUI = (game: Game, options?: { onMove?: (event: MoveEvent) => void }) => {
+export const useChessUI = (
+  game: Game,
+  options?: { onMove?: (event: MoveEvent) => void; onPromotion?: (move: PromotionMove) => void },
+) => {
   const [version, setVersion] = useState(0);
   const [selection, setSelection] = useState<SelectionState | null>(null);
   const [candidateMoves, setCandidateMoves] = useState<Move[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const { t } = useTranslation();
   const onMove = options?.onMove;
+  const onPromotion = options?.onPromotion;
 
   const applyMove = useCallback(
     (move: Move): boolean => {
@@ -177,6 +190,13 @@ export const useChessUI = (game: Game, options?: { onMove?: (event: MoveEvent) =
         if (!move) {
           return;
         }
+        if (move instanceof PromotionMove && onPromotion) {
+          setSelection(null);
+          setCandidateMoves([]);
+          setMessage(null);
+          onPromotion(move);
+          return;
+        }
         applyMove(move);
         return;
       }
@@ -202,7 +222,7 @@ export const useChessUI = (game: Game, options?: { onMove?: (event: MoveEvent) =
         setMessage(null);
       }
     },
-    [applyMove, availableDestinations, candidateMoves, game, selection, t],
+    [applyMove, availableDestinations, candidateMoves, game, onPromotion, selection, t],
   );
 
   const currentTurn = game.getTurn();
