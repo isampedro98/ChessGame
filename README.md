@@ -77,7 +77,7 @@ Each folder contains its own README with additional context and extension points
   - Start a New Game
   - Export the current game as JSON
   - Import a game JSON to replay moves
-  - Toggle Play vs Bot (Phase 1: capture-first legal move; plays as Black by default)
+  - Toggle Play vs Bot (training heuristic with move explanations; plays as Black by default)
 - End-of-game: when checkmate or max-moves is reached, the app records a summary and shows a prompt with:
   - Start New Game
   - Rematch (swap colors)
@@ -154,7 +154,7 @@ Current version: `0.3.0` (2026-01-26). See `CHANGELOG.md` for details (Changes /
 | Area | Done | In progress | Planned |
 | --- | --- | --- | --- |
 | Engine rules | core piece movement, captures, self-check enforcement, check/checkmate detection, special moves (castling, en passant, promotion) | stalemate/perft diagnostics | FEN/PGN import/export |
-| Bot | capture-first legal move | simple evaluation tuning | minimax depth 2/3 |
+| Bot | training heuristic bot with move feedback | evaluation tuning | minimax depth 2/3 |
 | 3D scene | board + pieces + materials + lighting, move tweens, instanced board squares | raycast selection | InstancedMesh / mergeGeometries for pieces |
 | UI/UX | export/import, stats, i18n, static export | settings panel | keyboard shortcuts, mobile polish |
 | Testing | Vitest runner, scene builder smoke tests, special-move tests | domain legality tests | perft benchmarks |
