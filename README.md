@@ -73,6 +73,7 @@ Each folder contains its own README with additional context and extension points
 ## Gameplay & Controls
 - Interaction is in the 3D scene; the 2D board is a read-only mirror with highlights.
 - 3D: click origin, then destination (2D/3D are derived from the same game state).
+- Camera modes: Player (human POV), Studio (wide shot), Free (orbit controls).
 - Info panel shows current turn, total moves, and an optional max-moves limit. You can:
   - Start a New Game
   - Export the current game as JSON
@@ -144,11 +145,11 @@ Stats are stored under `chess.stats` as:
 - Piece movement uses short tweens to mirror the latest move history.
 
 ## Testing Strategy
-- Current: Vitest runner with domain special-move coverage and chess-scene smoke tests (`src/chess-scene/__tests__/builders.test.ts`).
+- Current: Vitest runner with per-piece unit tests plus special-move coverage and chess-scene smoke tests (`src/chess-scene/__tests__/builders.test.ts`).
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Versioning
-Current version: `0.3.0` (2026-01-26). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
+Current version: `0.4.0` (2026-01-27). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |
