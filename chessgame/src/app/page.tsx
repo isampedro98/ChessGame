@@ -77,6 +77,7 @@ export default function Home(): JSX.Element {
 	const [trainingFeedback, setTrainingFeedback] = useState<{ tone: 'good' | 'ok' | 'warn' | 'bad'; text: string } | null>(null);
 	const [game, setGame] = useState(() => createStandardGame());
   const [pendingPromotion, setPendingPromotion] = useState<PromotionMove | null>(null);
+  const [cameraMode, setCameraMode] = useState<'player' | 'studio' | 'free'>('player');
 	const { t } = useTranslation();
 	const {
 		squares,
@@ -452,11 +453,37 @@ return (
 					</div>
 
 					<div className="space-y-4">
-						<h2 className="text-lg font-semibold">{t('scene.title')}</h2>
+						<div className="flex items-center justify-between gap-3">
+							<h2 className="text-lg font-semibold">{t('scene.title')}</h2>
+							<div className="flex items-center gap-2 text-xs text-slate-300">
+								<span className="uppercase tracking-[0.25em] text-slate-500">{t('scene.camera')}</span>
+								<div className="flex overflow-hidden rounded-full border border-slate-800 bg-slate-900/60">
+									<button
+										className={`px-3 py-1 text-[11px] font-semibold tracking-[0.2em] ${cameraMode === 'player' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-200'}`}
+										onClick={() => setCameraMode('player')}
+									>
+										{t('scene.camera.player')}
+									</button>
+									<button
+										className={`px-3 py-1 text-[11px] font-semibold tracking-[0.2em] ${cameraMode === 'studio' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-200'}`}
+										onClick={() => setCameraMode('studio')}
+									>
+										{t('scene.camera.studio')}
+									</button>
+									<button
+										className={`px-3 py-1 text-[11px] font-semibold tracking-[0.2em] ${cameraMode === 'free' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-200'}`}
+										onClick={() => setCameraMode('free')}
+									>
+										{t('scene.camera.free')}
+									</button>
+								</div>
+							</div>
+						</div>
 						<div className="flex h-[420px] w-full items-center justify-center overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
 							<ChessScene
 								initialPieces={scenePieces}
 								currentTurn={currentTurn}
+								cameraMode={cameraMode}
 								onPickSquare={handlePickSquare}
 								selectedSquareKey={selectedSquareKey}
 								availableDestinations={availableDestinations}

@@ -33,6 +33,7 @@ interface ChessSceneProps {
 		position: { row: number; column: number };
 	}>;
   currentTurn: Team;
+  cameraMode: 'player' | 'studio' | 'free';
   onPickSquare?: (row: number, column: number, originKey?: string) => void;
   selectedSquareKey?: string | null;
   availableDestinations?: Set<string>;
@@ -49,7 +50,18 @@ const factoryByType: Record<PieceType, (m: THREE.Material) => THREE.Object3D> =
 		[PieceType.King]: createKing,
 	};
 
-export default function ChessScene({ initialPieces, currentTurn, onPickSquare, selectedSquareKey = null, availableDestinations = new Set(), captureDestinations = new Set() }: ChessSceneProps) {
+const STUDIO_CAMERA = { x: 7.5, y: 10.5, z: 9.5 };
+const PLAYER_CAMERA = { x: 0, y: 8, z: 8 };
+
+export default function ChessScene({
+  initialPieces,
+  currentTurn,
+  cameraMode,
+  onPickSquare,
+  selectedSquareKey = null,
+  availableDestinations = new Set(),
+  captureDestinations = new Set(),
+}: ChessSceneProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 	const sceneRef = useRef<THREE.Scene | null>(null);
@@ -205,20 +217,30 @@ export default function ChessScene({ initialPieces, currentTurn, onPickSquare, s
 		};
 	}, []);
 
-  // Orientar la camara segun el turno
+  // Orientar la camara segun el turno (modo fijo)
   useEffect(() => {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
     if (!camera || !controls) return;
+    const isFree = cameraMode === 'free';
+    controls.enabled = isFree;
+    controls.enableRotate = isFree;
+    controls.enableZoom = isFree;
+    controls.enablePan = isFree;
+    if (isFree) {
+      return;
+    }
+    const preset = cameraMode === 'studio' ? STUDIO_CAMERA : PLAYER_CAMERA;
     // Vista correcta: Blancas miran desde z negativo; Negras desde z positivo
     if (currentTurn === Team.White) {
-      camera.position.set(6, 9, -9);
+      camera.position.set(preset.x, preset.y, -preset.z);
     } else {
-      camera.position.set(-6, 9, 9);
+      camera.position.set(-preset.x, preset.y, preset.z);
     }
+    camera.lookAt(0, 0, 0);
     controls.target.set(0, 0.3, 0);
     controls.update();
-  }, [currentTurn]);
+  }, [cameraMode, currentTurn]);
 
   // Sync changing props into refs for handlers
   useEffect(() => { onPickSquareRef.current = onPickSquare ?? null; }, [onPickSquare]);
