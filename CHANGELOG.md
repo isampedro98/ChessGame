@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-01-29
+### Changes
+- Added perft position suite to validate move generation.
+
+### Done
+- Perft baselines for starting position plus castling/en-passant cases.
+
+### Ongoing
+- Expand perft coverage with additional positions and depths.
+
+### TODO
+- Promote perft suite into CI gating once stabilized.
+
 ## [0.4.0] - 2026-01-27
 ### Changes
 - Train vs AI uses a deterministic state-machine evaluator (no generative AI).

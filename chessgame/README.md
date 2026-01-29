@@ -145,11 +145,11 @@ Stats are stored under `chess.stats` as:
 - Piece movement uses short tweens to mirror the latest move history.
 
 ## Testing Strategy
-- Current: Vitest runner with per-piece unit tests plus special-move coverage and chess-scene smoke tests (`src/chess-scene/__tests__/builders.test.ts`).
+- Current: Vitest runner with per-piece unit tests, a perft position suite, special-move coverage, and chess-scene smoke tests (`src/chess-scene/__tests__/builders.test.ts`).
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Versioning
-Current version: `0.4.0` (2026-01-27). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
+Current version: `0.5.0` (2026-01-29). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |
