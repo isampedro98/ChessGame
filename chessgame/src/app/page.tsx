@@ -22,6 +22,7 @@ import {
 	CastleMove,
 	EnPassantMove,
 	PromotionMove,
+	type GameResult,
 } from '@/domain/chess';
 
 const STATS_KEY = 'chess.stats';
@@ -195,9 +196,9 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   const summarizeGame = useCallback((): GameSummary => {
     const history = game.moveHistory();
     const board = game.getBoard();
-    const whiteHasKing = board.getPiecesByTeam(Team.White).some((p) => p.type === PieceType.King);
-    const blackHasKing = board.getPiecesByTeam(Team.Black).some((p) => p.type === PieceType.King);
-		const winner: 'WHITE' | 'BLACK' | null = !whiteHasKing ? 'BLACK' : !blackHasKing ? 'WHITE' : null;
+    const result = game.getResult();
+		const winner: 'WHITE' | 'BLACK' | null =
+			result === Team.White ? 'WHITE' : result === Team.Black ? 'BLACK' : null;
 		let capturedWhite = 0; let capturedBlack = 0;
 		for (const rec of history) {
 			const c = rec.resolution.capturedPiece;
@@ -373,9 +374,9 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   };
   // Detect end of game (winner or draw by max moves), persist stats, and prompt user
   useEffect(() => {
-    const winner = game.getWinner();
+    const result: GameResult = game.getResult();
     const reachedMax = maxMoves != null && history.length >= maxMoves;
-    if ((winner || reachedMax) && !pendingSummary) {
+    if ((result || reachedMax) && !pendingSummary) {
       const summary = summarizeGame();
       const winsWhite = stats.winsWhite + (summary.winner === 'WHITE' ? 1 : 0);
       const winsBlack = stats.winsBlack + (summary.winner === 'BLACK' ? 1 : 0);

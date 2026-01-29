@@ -13,6 +13,8 @@ interface MoveRecord {
   resolution: MoveResolution;
 }
 
+export type GameResult = Team | 'DRAW' | null;
+
 export class Game {
   private readonly board: Board;
   private turn: Team = Team.White;
@@ -80,6 +82,57 @@ export class Game {
         }
       }
     }
+    return false;
+  }
+
+  private hasInsufficientMaterial(): boolean {
+    const pieces = this.board.allPieces();
+    const nonKings = pieces.filter((piece) => piece.type !== PieceType.King);
+
+    if (nonKings.length === 0) {
+      return true;
+    }
+
+    const counts = {
+      white: { bishops: [] as number[], knights: 0 },
+      black: { bishops: [] as number[], knights: 0 },
+    };
+
+    for (const piece of nonKings) {
+      if ([PieceType.Pawn, PieceType.Rook, PieceType.Queen].includes(piece.type)) {
+        return false;
+      }
+      const key = piece.team === Team.White ? 'white' : 'black';
+      if (piece.type === PieceType.Bishop) {
+        const pos = piece.getPosition();
+        counts[key].bishops.push((pos.row + pos.column) % 2);
+      } else if (piece.type === PieceType.Knight) {
+        counts[key].knights += 1;
+      }
+    }
+
+    const whiteMinors = counts.white.bishops.length + counts.white.knights;
+    const blackMinors = counts.black.bishops.length + counts.black.knights;
+    const totalMinors = whiteMinors + blackMinors;
+
+    if (totalMinors <= 1) {
+      return true;
+    }
+
+    if (totalMinors === 2) {
+      if (whiteMinors === 1 && blackMinors === 1) {
+        return true;
+      }
+
+      if (whiteMinors === 2 && blackMinors === 0) {
+        return counts.white.knights === 2;
+      }
+
+      if (blackMinors === 2 && whiteMinors === 0) {
+        return counts.black.knights === 2;
+      }
+    }
+
     return false;
   }
 
@@ -190,16 +243,25 @@ export class Game {
     return [new EnPassantMove(pawn.id, pawnPos, destination, capturedPos)];
   }
 
-  getWinner(): Team | null {
+  getResult(): GameResult {
     const whiteKing = this.kingPosition(this.board, Team.White);
     const blackKing = this.kingPosition(this.board, Team.Black);
     if (!whiteKing && blackKing) return Team.Black;
     if (!blackKing && whiteKing) return Team.White;
-    if (!whiteKing && !blackKing) return null;
+    if (!whiteKing && !blackKing) return 'DRAW';
+
+    if (this.hasInsufficientMaterial()) {
+      return 'DRAW';
+    }
 
     const current = this.turn;
     if (this.hasLegalMove(current)) return null;
-    return this.isInCheck(this.board, current) ? oppositeTeam(current) : null;
+    return this.isInCheck(this.board, current) ? oppositeTeam(current) : 'DRAW';
+  }
+
+  getWinner(): Team | null {
+    const result = this.getResult();
+    return result === Team.White || result === Team.Black ? result : null;
   }
 
   executeMove(move: Move): void {

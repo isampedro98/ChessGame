@@ -2,9 +2,9 @@
 
 Ordered by importance and ROI.
 
-## 1) Perft + position suite
-- Validates move generation quickly and catches edge-case bugs.
-- A single day here saves weeks of manual debugging.
+## 1) ~~Perft + position suite~~ (done)
+- ~~Validates move generation quickly and catches edge-case bugs.~~
+- ~~A single day here saves weeks of manual debugging.~~
 
 ## 2) Stalemate + insufficient material
 - Relatively straightforward.

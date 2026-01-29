@@ -11,6 +11,7 @@ import {
   type Piece,
   EnPassantMove,
   PromotionMove,
+  type GameResult,
 } from '@/domain/chess';
 import type { Board } from '@/domain/chess/core/Board';
 
@@ -226,12 +227,12 @@ export const useChessUI = (
   );
 
   const currentTurn = game.getTurn();
-  const winner: Team | null = game.getWinner();
+  const result: GameResult = game.getResult();
 
-  const instruction = winner
-    ? winner === Team.White
+  const instruction = result
+    ? result === Team.White
       ? t('info.winner.whites')
-      : winner === Team.Black
+      : result === Team.Black
         ? t('info.winner.blacks')
         : t('info.winner.draw')
     : selection

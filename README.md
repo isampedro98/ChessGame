@@ -68,7 +68,7 @@ Each folder contains its own README with additional context and extension points
 - Piece-legal movement for all standard pieces.
 - Self-check moves are filtered during move generation (UI and bot) and rejected in `Game.executeMove`.
 - Special moves are implemented in `Game` (castling, en passant, promotion). Promotion defaults to a queen.
-- Winner detection uses check/checkmate logic plus a king-capture fallback.
+- Winner detection covers checkmate plus stalemate/insufficient material draws. King-capture fallback remains for now.
 
 ## Gameplay & Controls
 - Interaction is in the 3D scene; the 2D board is a read-only mirror with highlights.
@@ -149,7 +149,7 @@ Stats are stored under `chess.stats` as:
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Versioning
-Current version: `0.5.0` (2026-01-29). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
+Current version: `0.5.1` (2026-01-29). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |

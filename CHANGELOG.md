@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2026-01-29
+### Changes
+- Added stalemate and insufficient-material draws.
+
+### Done
+- Draw detection now returns a proper game result (win/loss/draw).
+
+### Ongoing
+- Expand draw rules (threefold repetition, 50-move rule).
+
+### TODO
+- Remove king-capture fallback or restrict it to debug mode.
+
 ## [0.5.0] - 2026-01-29
 ### Changes
 - Added perft position suite to validate move generation.
