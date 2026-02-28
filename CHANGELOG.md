@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.5] - 2026-02-28
+### Changes
+- Added a dedicated legal-edge-case test suite covering pins, double-check, en passant timing/self-check, and castling after king/rook movement.
+- Hardened promotion rules: engine now rejects promotion to pawn/king, with explicit invalid-promotion tests.
+- Added a collapsible beginner Rules panel with practical guidance and a direct FIDE rules link.
+- Made Stats and Move History panels collapsible.
+- Expanded i18n entries for new panel/toggle labels.
+
+### Done
+- Improvement #5 completed (legal move edge cases).
+- Improvement #7 completed (promotion enforcement + tests).
+- Improvement #8 completed (rules panel for beginners).
+
+### Ongoing
+- Training UX improvements (undo/backstep and visual check/checkmate cues).
+
+### TODO
+- Add lightweight engine hints (candidate moves + mini decision tree guidance).
+
 ## [0.5.4] - 2026-02-28
 ### Changes
 - Game export/import: new schema version 2 with FEN per move (position after each move).

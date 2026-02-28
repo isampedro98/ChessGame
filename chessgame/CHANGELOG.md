@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.5] - 2026-02-28
+### Changes
+- Added a dedicated legal-edge-case test suite covering pins, double-check, en passant timing/self-check, and castling after king/rook movement.
+- Hardened promotion rules: engine now rejects promotion to pawn/king, with explicit invalid-promotion tests.
+- Added a collapsible beginner Rules panel with practical guidance and a direct FIDE rules link.
+- Made Stats and Move History panels collapsible.
+- Expanded i18n entries for new panel/toggle labels.
+
+### Done
+- Improvement #5 completed (legal move edge cases).
+- Improvement #7 completed (promotion enforcement + tests).
+- Improvement #8 completed (rules panel for beginners).
+
+### Ongoing
+- Training UX improvements (undo/backstep and visual check/checkmate cues).
+
+### TODO
+- Add lightweight engine hints (candidate moves + mini decision tree guidance).
+
+## [0.5.4] - 2026-02-28
+### Changes
+- Game export/import: new schema version 2 with FEN per move (position after each move).
+- Import still accepts legacy JSON (schemaVersion < 2): board is computed by replaying moves; FEN in v2 is for reproducibility/validation.
+- PGN for scoreboard: each finished game stores PGN; Stats panel shows "Copy PGN" and "Show PGN" per game.
+- Domain: `Game.toFEN()`, `Game.getHalfMoveClock()`, `Game.getFullMoveNumber()`, `Game.isKingInCheck()`; new `pgn.ts` (moveToSAN, gameToPGN, buildMoveForBoard).
+
+### Done
+- FEN (Forsyth-Edwards Notation) for current position and per-move in export.
+- PGN (Standard Algebraic Notation) generated and stored per game; visible and copyable in Stats.
+
+### Ongoing
+- Optional: load game from FEN (currently import replays moves only).
+
 ## [0.5.3] - 2026-02-28
 ### Changes
 - Fixed duplicate match-history entries when a game ends by persisting results only once per game.
