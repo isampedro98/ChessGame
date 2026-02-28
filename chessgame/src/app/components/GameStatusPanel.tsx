@@ -67,11 +67,10 @@ export function GameStatusPanel({
             className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
           >
             <option value="">{t('status.unlimited')}</option>
-            <option value="50">50</option>
             <option value="40">40</option>
+            <option value="50">{t('status.option.professional50')}</option>
             <option value="60">60</option>
             <option value="80">80</option>
-            <option value="100">100</option>
           </select>
         </label>
       </div>
