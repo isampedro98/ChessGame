@@ -186,6 +186,8 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   // End-of-game summary (declare before effects that depend on it)
   const [pendingSummary, setPendingSummary] = useState<GameSummary | null>(null);
   const botBusyRef = useRef(false);
+  /** Tracks whether we already persisted this game's result (avoids duplicate stats when effect re-runs) */
+  const gameEndPersistedRef = useRef(false);
 
 	const persistStats = useCallback((value: Stats) => {
 		const normalized = { ...value, schemaVersion: STATS_SCHEMA_VERSION };
@@ -222,6 +224,8 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 			const winsBlack = stats.winsBlack + (summary.winner === 'BLACK' ? 1 : 0);
 			persistStats({ ...stats, totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
 		}
+		gameEndPersistedRef.current = false;
+		setPendingSummary(null);
 		setGame(createStandardGame());
 		currentGameStartRef.current = new Date().toISOString();
 		setTrainingFeedback(null);
@@ -360,6 +364,7 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
   useEffect(() => { performBotMove(); }, [history.length, performBotMove]);
 
   const handleRematchSwapColors = () => {
+    gameEndPersistedRef.current = false;
     setPendingSummary(null);
     setGame(createSwappedGame());
     currentGameStartRef.current = new Date().toISOString();
@@ -372,17 +377,19 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     setTrainingFeedback(null);
     setPendingPromotion(null);
   };
-  // Detect end of game (winner or draw by max moves), persist stats, and prompt user
+  // Detect end of game (winner or draw by max moves), persist stats once, and prompt user
   useEffect(() => {
     const result: GameResult = game.getResult();
     const reachedMax = maxMoves != null && history.length >= maxMoves;
-    if ((result || reachedMax) && !pendingSummary) {
-      const summary = summarizeGame();
-      const winsWhite = stats.winsWhite + (summary.winner === 'WHITE' ? 1 : 0);
-      const winsBlack = stats.winsBlack + (summary.winner === 'BLACK' ? 1 : 0);
-      persistStats({ ...stats, totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
-      setPendingSummary(summary);
+    if (!(result || reachedMax) || pendingSummary || gameEndPersistedRef.current) {
+      return;
     }
+    gameEndPersistedRef.current = true;
+    const summary = summarizeGame();
+    const winsWhite = stats.winsWhite + (summary.winner === 'WHITE' ? 1 : 0);
+    const winsBlack = stats.winsBlack + (summary.winner === 'BLACK' ? 1 : 0);
+    persistStats({ ...stats, totalGames: stats.totalGames + 1, winsWhite, winsBlack, games: [...stats.games, summary] });
+    setPendingSummary(summary);
   }, [game, history.length, maxMoves, pendingSummary, persistStats, stats, summarizeGame]);
 
 	// Stable lookup by board key for 3D clicks
@@ -441,12 +448,30 @@ return (
                     <p className="text-sm text-slate-500">{t('board.subtitle')}</p>
                     <p className="text-xs text-slate-500">{t('board.interactionHint')}</p>
                     {pendingSummary ? (
-                      <div className="mt-2 rounded-md border border-emerald-700/40 bg-emerald-900/30 p-3 text-sm text-emerald-200">
-                        <div className="mb-2">Game finished. {pendingSummary.winner ?? 'DRAW'}</div>
-                        <div className="flex gap-2">
-                          <button onClick={handleNewGame} className="rounded-md bg-emerald-700 px-3 py-1 text-xs text-white hover:bg-emerald-600">Start New Game</button>
-                          <button onClick={handleRematchSwapColors} className="rounded-md bg-indigo-700 px-3 py-1 text-xs text-white hover:bg-indigo-600">Rematch (swap colors)</button>
-                          <button onClick={() => setPendingSummary(null)} className="rounded-md bg-slate-800 px-3 py-1 text-xs text-slate-100 hover:bg-slate-700">Keep Viewing</button>
+                      <div className="relative z-10 mt-2 rounded-md border border-emerald-700/40 bg-emerald-900/30 p-3 text-sm text-emerald-200">
+                        <div className="mb-2 font-medium">Game finished. {pendingSummary.winner ?? 'DRAW'}</div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={handleNewGame}
+                            className="cursor-pointer rounded-md bg-emerald-700 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+                          >
+                            Start New Game
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRematchSwapColors}
+                            className="cursor-pointer rounded-md bg-indigo-700 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+                          >
+                            Rematch (swap colors)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingSummary(null)}
+                            className="cursor-pointer rounded-md bg-slate-800 px-3 py-2 text-xs font-medium text-slate-100 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+                          >
+                            Keep Viewing
+                          </button>
                         </div>
                       </div>
                     ) : null}

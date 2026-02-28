@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.3] - 2026-02-28
+### Changes
+- Fixed duplicate match-history entries when a game ends by persisting results only once per game.
+- Improved end-of-game rematch prompt buttons (`type="button"`, focus ring, spacing, wrap, z-index).
+- Added `npm run test` to CI workflow (`.github/workflows/nextjs.yml`).
+
+### Done
+- End-of-game summaries no longer duplicate in saved stats/history.
+- Rematch prompt actions are more robust and accessible.
+- CI now validates lint, tests, and build.
+
+### Ongoing
+- Expand draw rules (threefold repetition, 50-move rule).
+
+### TODO
+- Add option to clear persisted match history from the UI.
+
+## [0.5.2] - 2026-01-29
+### Changes
+- Removed king-capture fallback from game result detection.
+
+### Done
+- Missing-king scenarios no longer award a winner.
+
+### Ongoing
+- Expand draw rules (threefold repetition, 50-move rule).
+
+### TODO
+- Promote perft suite into CI gating once stabilized.
+
 ## [0.5.1] - 2026-01-29
 ### Changes
 - Added stalemate and insufficient-material draws.

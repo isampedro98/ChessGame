@@ -246,9 +246,9 @@ export class Game {
   getResult(): GameResult {
     const whiteKing = this.kingPosition(this.board, Team.White);
     const blackKing = this.kingPosition(this.board, Team.Black);
-    if (!whiteKing && blackKing) return Team.Black;
-    if (!blackKing && whiteKing) return Team.White;
-    if (!whiteKing && !blackKing) return 'DRAW';
+    if (!whiteKing || !blackKing) {
+      return 'DRAW';
+    }
 
     if (this.hasInsufficientMaterial()) {
       return 'DRAW';

@@ -45,4 +45,12 @@ describe('game result (draws)', () => {
 
     expect(game.getResult()).toBe('DRAW');
   });
+
+  test('missing king does not award a winner (fallback removed)', () => {
+    const whiteKing = new King('white-king', Team.White, Position.fromAlgebraic('e1'));
+    const whiteQueen = new Queen('white-queen', Team.White, Position.fromAlgebraic('d1'));
+    const game = new Game([whiteKing, whiteQueen]);
+
+    expect(game.getResult()).toBe('DRAW');
+  });
 });

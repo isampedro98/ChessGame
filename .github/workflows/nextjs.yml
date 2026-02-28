@@ -51,6 +51,10 @@ jobs:
         working-directory: ./chessgame
         run: npm run lint
 
+      - name: Test
+        working-directory: ./chessgame
+        run: npm run test
+
       - name: Build (npm script)
         working-directory: ./chessgame
         run: npm run build
