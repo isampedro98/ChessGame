@@ -18,6 +18,12 @@ interface MoveRecord {
 
 export type GameResult = Team | 'DRAW' | null;
 
+export interface GameFromFENOptions {
+  turn?: Team;
+  halfMoveClock?: number;
+  castlingRights?: string;
+}
+
 export class Game {
   private readonly board: Board;
   private turn: Team = Team.White;
@@ -28,9 +34,14 @@ export class Game {
   private readonly halfMoveStack: number[] = [];
   /** Position keys after each move (board + turn + castling + ep) for threefold repetition. */
   private readonly positionKeys: string[] = [];
+  /** When set (e.g. from FEN), used instead of hasMoved for castling; updated on king/rook move. */
+  private castlingRightsOverride: string | null = null;
 
-  constructor(pieces: Piece[]) {
+  constructor(pieces: Piece[], options?: GameFromFENOptions) {
     this.board = new Board(pieces);
+    if (options?.turn !== undefined) this.turn = options.turn;
+    if (options?.halfMoveClock !== undefined) this.halfMovesWithoutCaptureOrPawn = options.halfMoveClock;
+    if (options?.castlingRights !== undefined) this.castlingRightsOverride = options.castlingRights || '-';
   }
 
   getBoard(): Board {
@@ -39,6 +50,95 @@ export class Game {
 
   getTurn(): Team {
     return this.turn;
+  }
+
+  /** Half-moves (plies) since last capture or pawn move; for FEN and 50-move rule. */
+  getHalfMoveClock(): number {
+    return this.halfMovesWithoutCaptureOrPawn;
+  }
+
+  /** Full move number (1-based); for FEN. */
+  getFullMoveNumber(): number {
+    return 1 + Math.floor(this.history.length / 2);
+  }
+
+  /** Whether the given team's king is in check in the current position. */
+  isKingInCheck(team: Team): boolean {
+    return this.isInCheck(this.board, team);
+  }
+
+  /**
+   * Returns the current position in standard FEN (Forsyth–Edwards Notation).
+   * Format: piecePlacement activeColor castlingRights enPassantTarget halfmoveClock fullMoveNumber
+   */
+  toFEN(): string {
+    const board = this.board;
+    const pieceToChar: Record<PieceType, string> = {
+      [PieceType.Pawn]: 'P',
+      [PieceType.Knight]: 'N',
+      [PieceType.Bishop]: 'B',
+      [PieceType.Rook]: 'R',
+      [PieceType.Queen]: 'Q',
+      [PieceType.King]: 'K',
+    };
+    const ranks: string[] = [];
+    for (let row = 7; row >= 0; row -= 1) {
+      let rank = '';
+      let empty = 0;
+      for (let col = 0; col < 8; col += 1) {
+        const pos = Position.fromCoordinates(row, col);
+        const piece = board.getPiece(pos);
+        if (!piece) {
+          empty += 1;
+          continue;
+        }
+        if (empty > 0) {
+          rank += String(empty);
+          empty = 0;
+        }
+        const c = pieceToChar[piece.type];
+        rank += piece.team === Team.White ? c : c.toLowerCase();
+      }
+      if (empty > 0) rank += String(empty);
+      ranks.push(rank);
+    }
+    const placement = ranks.join('/');
+    const activeColor = this.turn === Team.White ? 'w' : 'b';
+    const e1 = Position.fromCoordinates(0, 4);
+    const a1 = Position.fromCoordinates(0, 0);
+    const h1 = Position.fromCoordinates(0, 7);
+    const e8 = Position.fromCoordinates(7, 4);
+    const a8 = Position.fromCoordinates(7, 0);
+    const h8 = Position.fromCoordinates(7, 7);
+    let castling = '';
+    const wk = board.getPiece(e1);
+    if (wk?.type === PieceType.King && wk.team === Team.White && !this.hasMoved(wk.id)) {
+      const rh = board.getPiece(h1);
+      if (rh?.type === PieceType.Rook && rh.team === Team.White && !this.hasMoved(rh.id)) castling += 'K';
+      const ra = board.getPiece(a1);
+      if (ra?.type === PieceType.Rook && ra.team === Team.White && !this.hasMoved(ra.id)) castling += 'Q';
+    }
+    const bk = board.getPiece(e8);
+    if (bk?.type === PieceType.King && bk.team === Team.Black && !this.hasMoved(bk.id)) {
+      const rh = board.getPiece(h8);
+      if (rh?.type === PieceType.Rook && rh.team === Team.Black && !this.hasMoved(rh.id)) castling += 'k';
+      const ra = board.getPiece(a8);
+      if (ra?.type === PieceType.Rook && ra.team === Team.Black && !this.hasMoved(ra.id)) castling += 'q';
+    }
+    if (!castling) castling = '-';
+    let ep = '-';
+    const last = this.history[this.history.length - 1];
+    if (last) {
+      const { move } = last;
+      const piece = board.getPiece(move.to);
+      if (piece?.type === PieceType.Pawn && Math.abs(move.to.row - move.from.row) === 2) {
+        const epRow = (move.from.row + move.to.row) / 2;
+        ep = Position.fromCoordinates(epRow, move.to.column).toAlgebraic();
+      }
+    }
+    const halfMove = this.getHalfMoveClock();
+    const fullMove = this.getFullMoveNumber();
+    return `${placement} ${activeColor} ${castling} ${ep} ${halfMove} ${fullMove}`;
   }
 
   // Winner detection helpers
@@ -152,7 +252,6 @@ export class Game {
   /** Builds a key for the current position (board + turn + castling + ep) for threefold repetition. */
   private getPositionKey(): string {
     const board = this.board;
-    const files = 'abcdefgh';
     let boardPart = '';
     for (let row = 7; row >= 0; row -= 1) {
       for (let col = 0; col < 8; col += 1) {
@@ -167,28 +266,33 @@ export class Game {
       }
     }
     const turnChar = this.turn === Team.White ? 'w' : 'b';
-    const e1 = Position.fromCoordinates(0, 4);
-    const a1 = Position.fromCoordinates(0, 0);
-    const h1 = Position.fromCoordinates(0, 7);
-    const e8 = Position.fromCoordinates(7, 4);
-    const a8 = Position.fromCoordinates(7, 0);
-    const h8 = Position.fromCoordinates(7, 7);
-    let castling = '';
-    const wk = board.getPiece(e1);
-    if (wk?.type === PieceType.King && wk.team === Team.White && !this.hasMoved(wk.id)) {
-      const rh = board.getPiece(h1);
-      if (rh?.type === PieceType.Rook && rh.team === Team.White && !this.hasMoved(rh.id)) castling += 'K';
-      const ra = board.getPiece(a1);
-      if (ra?.type === PieceType.Rook && ra.team === Team.White && !this.hasMoved(ra.id)) castling += 'Q';
+    let castling: string;
+    if (this.castlingRightsOverride !== null) {
+      castling = this.castlingRightsOverride || '-';
+    } else {
+      const e1 = Position.fromCoordinates(0, 4);
+      const a1 = Position.fromCoordinates(0, 0);
+      const h1 = Position.fromCoordinates(0, 7);
+      const e8 = Position.fromCoordinates(7, 4);
+      const a8 = Position.fromCoordinates(7, 0);
+      const h8 = Position.fromCoordinates(7, 7);
+      castling = '';
+      const wk = board.getPiece(e1);
+      if (wk?.type === PieceType.King && wk.team === Team.White && !this.hasMoved(wk.id)) {
+        const rh = board.getPiece(h1);
+        if (rh?.type === PieceType.Rook && rh.team === Team.White && !this.hasMoved(rh.id)) castling += 'K';
+        const ra = board.getPiece(a1);
+        if (ra?.type === PieceType.Rook && ra.team === Team.White && !this.hasMoved(ra.id)) castling += 'Q';
+      }
+      const bk = board.getPiece(e8);
+      if (bk?.type === PieceType.King && bk.team === Team.Black && !this.hasMoved(bk.id)) {
+        const rh = board.getPiece(h8);
+        if (rh?.type === PieceType.Rook && rh.team === Team.Black && !this.hasMoved(rh.id)) castling += 'k';
+        const ra = board.getPiece(a8);
+        if (ra?.type === PieceType.Rook && ra.team === Team.Black && !this.hasMoved(ra.id)) castling += 'q';
+      }
+      if (!castling) castling = '-';
     }
-    const bk = board.getPiece(e8);
-    if (bk?.type === PieceType.King && bk.team === Team.Black && !this.hasMoved(bk.id)) {
-      const rh = board.getPiece(h8);
-      if (rh?.type === PieceType.Rook && rh.team === Team.Black && !this.hasMoved(rh.id)) castling += 'k';
-      const ra = board.getPiece(a8);
-      if (ra?.type === PieceType.Rook && ra.team === Team.Black && !this.hasMoved(ra.id)) castling += 'q';
-    }
-    if (!castling) castling = '-';
     let ep = '-';
     const last = this.history[this.history.length - 1];
     if (last) {
@@ -221,11 +325,15 @@ export class Game {
     if (king.type !== PieceType.King) {
       return [];
     }
-    if (this.hasMoved(king.id)) {
+    const team = king.team;
+    if (this.castlingRightsOverride !== null) {
+      const canK = team === Team.White ? this.castlingRightsOverride.includes('K') : this.castlingRightsOverride.includes('k');
+      const canQ = team === Team.White ? this.castlingRightsOverride.includes('Q') : this.castlingRightsOverride.includes('q');
+      if (!canK && !canQ) return [];
+    } else if (this.hasMoved(king.id)) {
       return [];
     }
 
-    const team = king.team;
     const row = king.getPosition().row;
     if (this.isInCheck(this.board, team)) {
       return [];
@@ -236,11 +344,14 @@ export class Game {
 
     const kingSideRookFrom = Position.fromCoordinates(row, 7);
     const kingSideRook = this.board.getPiece(kingSideRookFrom);
+    const canCastleKingside = this.castlingRightsOverride !== null
+      ? (team === Team.White ? this.castlingRightsOverride.includes('K') : this.castlingRightsOverride.includes('k'))
+      : !this.hasMoved(king.id);
     if (
       kingSideRook &&
       kingSideRook.type === PieceType.Rook &&
       kingSideRook.team === team &&
-      !this.hasMoved(kingSideRook.id)
+      (this.castlingRightsOverride !== null ? canCastleKingside : !this.hasMoved(kingSideRook.id))
     ) {
       const f = Position.fromCoordinates(row, 5);
       const g = Position.fromCoordinates(row, 6);
@@ -256,11 +367,14 @@ export class Game {
 
     const queenSideRookFrom = Position.fromCoordinates(row, 0);
     const queenSideRook = this.board.getPiece(queenSideRookFrom);
+    const canCastleQueenside = this.castlingRightsOverride !== null
+      ? (team === Team.White ? this.castlingRightsOverride.includes('Q') : this.castlingRightsOverride.includes('q'))
+      : !this.hasMoved(king.id);
     if (
       queenSideRook &&
       queenSideRook.type === PieceType.Rook &&
       queenSideRook.team === team &&
-      !this.hasMoved(queenSideRook.id)
+      (this.castlingRightsOverride !== null ? canCastleQueenside : !this.hasMoved(queenSideRook.id))
     ) {
       const b = Position.fromCoordinates(row, 1);
       const c = Position.fromCoordinates(row, 2);
@@ -364,6 +478,21 @@ export class Game {
       move.revert(this.board, resolution);
       throw new Error('Move leaves the king in check.');
     }
+    if (this.castlingRightsOverride !== null && this.castlingRightsOverride !== '-') {
+      let next = this.castlingRightsOverride;
+      if (piece.type === PieceType.King) {
+        if (piece.team === Team.White) next = next.replace(/K/g, '').replace(/Q/g, '');
+        else next = next.replace(/k/g, '').replace(/q/g, '');
+      } else if (piece.type === PieceType.Rook) {
+        const from = move.from;
+        if (from.row === 0 && from.column === 7) next = next.replace(/K/g, '');
+        if (from.row === 0 && from.column === 0) next = next.replace(/Q/g, '');
+        if (from.row === 7 && from.column === 7) next = next.replace(/k/g, '');
+        if (from.row === 7 && from.column === 0) next = next.replace(/q/g, '');
+      }
+      this.castlingRightsOverride = next || '-';
+    }
+
     this.history.push({ move, resolution });
     this.turn = oppositeTeam(this.turn);
 

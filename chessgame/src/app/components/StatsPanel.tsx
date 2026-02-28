@@ -1,4 +1,5 @@
-"use client";
+'use client';
+
 import React from 'react';
 
 type GameSummary = {
@@ -9,6 +10,8 @@ type GameSummary = {
   winner: 'WHITE' | 'BLACK' | null;
   startedAt: string;
   endedAt: string | null;
+  pgn?: string;
+  finalFen?: string;
 };
 
 export type Stats = {
@@ -48,10 +51,38 @@ export function StatsPanel({ stats, onExport }: { stats: Stats; onExport: () => 
         ) : (
           <ul className="space-y-1">
             {lastGames.map((g) => (
-              <li key={g.id} className="flex items-center justify-between rounded-md bg-slate-800/40 px-2 py-1.5 text-sm">
-                <span className="text-slate-300">{g.startedAt.slice(0,10)} - {g.moves} moves</span>
-                <span className="text-slate-400">W:{g.capturedWhite} / B:{g.capturedBlack}</span>
-                <span className="text-slate-200">{g.winner ?? 'DRAW'}</span>
+              <li key={g.id} className="rounded-md bg-slate-800/40 px-2 py-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">{g.startedAt.slice(0,10)} - {g.moves} moves</span>
+                  <span className="text-slate-400">W:{g.capturedWhite} / B:{g.capturedBlack}</span>
+                  <span className="text-slate-200">{g.winner ?? 'DRAW'}</span>
+                </div>
+                {g.pgn && (
+                  <div className="mt-1 flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const pre = document.createElement('pre');
+                        pre.style.display = 'none';
+                        pre.textContent = g.pgn ?? '';
+                        document.body.appendChild(pre);
+                        const range = document.createRange();
+                        range.selectNode(pre);
+                        window.getSelection()?.removeAllRanges();
+                        window.getSelection()?.addRange(range);
+                        document.execCommand('copy');
+                        document.body.removeChild(pre);
+                      }}
+                      className="text-xs text-slate-400 hover:text-slate-200 underline"
+                    >
+                      Copy PGN
+                    </button>
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-slate-400 hover:text-slate-200">Show PGN</summary>
+                      <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-all rounded bg-slate-900/60 p-2 text-slate-300">{g.pgn}</pre>
+                    </details>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

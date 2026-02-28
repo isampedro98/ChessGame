@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.4] - 2026-02-28
+### Changes
+- Game export/import: new schema version 2 with FEN per move (position after each move).
+- Import still accepts legacy JSON (schemaVersion &lt; 2): board is computed by replaying moves; FEN in v2 is for reproducibility/validation.
+- PGN for scoreboard: each finished game stores PGN; Stats panel shows “Copy PGN” and “Show PGN” per game.
+- Domain: `Game.toFEN()`, `Game.getHalfMoveClock()`, `Game.getFullMoveNumber()`, `Game.isKingInCheck()`; new `pgn.ts` (moveToSAN, gameToPGN, buildMoveForBoard).
+
+### Done
+- FEN (Forsyth–Edwards Notation) for current position and per-move in export.
+- PGN (Standard Algebraic Notation) generated and stored per game; visible and copyable in Stats.
+
+### Ongoing
+- Optional: load game from FEN (currently import replays moves only).
+
 ## [0.5.3] - 2026-02-28
 ### Changes
 - Fixed duplicate match-history entries when a game ends by persisting results only once per game.

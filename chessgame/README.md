@@ -68,7 +68,7 @@ Each folder contains its own README with additional context and extension points
 - Piece-legal movement for all standard pieces.
 - Self-check moves are filtered during move generation (UI and bot) and rejected in `Game.executeMove`.
 - Special moves are implemented in `Game` (castling, en passant, promotion). Promotion defaults to a queen.
-- Winner detection covers checkmate plus stalemate/insufficient material draws.
+- Winner detection: checkmate, stalemate, insufficient material, threefold repetition, 50-move rule.
 
 ## Gameplay & Controls
 - Interaction is in the 3D scene; the 2D board is a read-only mirror with highlights.
@@ -85,26 +85,7 @@ Each folder contains its own README with additional context and extension points
   - Keep Viewing (no reset)
 
 ## Export/Import Format (Game)
-Game export produces a schema-versioned payload:
-
-```
-{
-  "schemaVersion": 1,
-  "moves": [
-    { "pieceName": "pawn", "team": "white", "from": "E2", "to": "E4" },
-    { "pieceName": "pawn", "team": "black", "from": "E7", "to": "E5" },
-    { "type": "castle", "pieceName": "king", "team": "white", "from": "E1", "to": "G1" },
-    { "type": "enPassant", "pieceName": "pawn", "team": "white", "from": "E5", "to": "D6" },
-    { "type": "promotion", "promotion": "QUEEN", "pieceName": "pawn", "team": "white", "from": "A7", "to": "A8" }
-  ]
-}
-```
-
-Importer notes:
-- Legacy format with `pieceId` and `row/column` objects is still accepted.
-- If `schemaVersion` is missing, version 1 is assumed.
-- If `type` is missing, the move is treated as a standard move.
-- If `pieceId` is not present, the importer infers the piece on the `from` square.
+Game export uses **schema version 2** (v1 still accepted on import). Each move in v2 includes `fen` (FEN after that move). Import replays moves for all versions; FEN in v2 is for reproducibility/validation.
 
 ## Stats (localStorage)
 Stats are stored under `chess.stats` as:
@@ -123,13 +104,15 @@ Stats are stored under `chess.stats` as:
       "capturedBlack": 7,
       "winner": "WHITE" | "BLACK" | null,
       "startedAt": "2025-03-01T10:20:30.000Z",
-      "endedAt": "2025-03-01T10:35:01.000Z"
+      "endedAt": "2025-03-01T10:35:01.000Z",
+      "pgn": "[Event \"?\"] ..."
     }
   ]
 }
 ```
 
 - Export/Import stats from the UI.
+- Each finished game can store **PGN**; Stats panel offers **Copy PGN** / **Show PGN** per game.
 - Schema versioning is in place for future migrations.
 
 ## Optional Wood Textures (Board)
@@ -149,12 +132,13 @@ Stats are stored under `chess.stats` as:
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Versioning
-Current version: `0.5.3` (2026-02-28). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
+Current version: **0.5.4** (2026-02-28). See `CHANGELOG.md` for details.
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |
 | --- | --- | --- | --- |
-| Engine rules | core piece movement, captures, self-check enforcement, check/checkmate detection, special moves (castling, en passant, promotion) | stalemate/perft diagnostics | FEN/PGN import/export |
+| Engine rules | core piece movement, captures, self-check, special moves, threefold, 50-move rule | perft diagnostics | load from FEN |
+| Export/Import | JSON v2 with FEN per move; legacy v1 accepted; PGN per game in stats | — | PGN import |
 | Bot | training heuristic bot with move feedback | evaluation tuning | minimax depth 2/3 |
 | 3D scene | board + pieces + materials + lighting, move tweens, instanced board squares | raycast selection | InstancedMesh / mergeGeometries for pieces |
 | UI/UX | export/import, stats, i18n, static export | settings panel | keyboard shortcuts, mobile polish |

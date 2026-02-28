@@ -24,10 +24,12 @@ import {
 	PromotionMove,
 	type GameResult,
 } from '@/domain/chess';
+import { buildMoveForBoard, gameToPGN } from '@/domain/chess/pgn';
+import { createGameFromFEN } from '@/domain/chess/fromFEN';
 
 const STATS_KEY = 'chess.stats';
 const STATS_SCHEMA_VERSION = 1;
-const GAME_SCHEMA_VERSION = 1;
+const GAME_SCHEMA_VERSION = 2;
 
 type GameSummary = {
 	id: string;
@@ -37,6 +39,8 @@ type GameSummary = {
 	winner: 'WHITE' | 'BLACK' | null;
 	startedAt: string;
 	endedAt: string | null;
+	pgn?: string;
+	finalFen?: string;
 };
 
 type Stats = {
@@ -174,6 +178,9 @@ export default function Home(): JSX.Element {
 	const [stats, setStats] = useState<Stats>(buildEmptyStats());
 	useEffect(() => { setStats(loadStats()); }, [loadStats]);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
+	const [showImportModal, setShowImportModal] = useState(false);
+	const [importError, setImportError] = useState<string | null>(null);
+	const [fenInput, setFenInput] = useState('');
 	const [maxMoves, setMaxMoves] = useState<number | null>(() => {
 		if (typeof window === 'undefined') return null;
 		try { const raw = window.localStorage.getItem('chess.maxMoves'); return raw ? (Number(raw) || null) : null; } catch { return null; }
@@ -197,7 +204,6 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 
   const summarizeGame = useCallback((): GameSummary => {
     const history = game.moveHistory();
-    const board = game.getBoard();
     const result = game.getResult();
 		const winner: 'WHITE' | 'BLACK' | null =
 			result === Team.White ? 'WHITE' : result === Team.Black ? 'BLACK' : null;
@@ -214,6 +220,8 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 			winner,
 			startedAt: currentGameStartRef.current,
 			endedAt: new Date().toISOString(),
+			pgn: gameToPGN(game),
+			finalFen: game.toFEN(),
 		};
 	}, [game]);
 
@@ -242,41 +250,52 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 	};
 
 	const handleExportGame = () => {
-		// Export with pieceName, team and algebraic squares (uppercase)
-		const records = game.moveHistory().map(({ move, resolution }) => {
-			const idParts = String(move.pieceId).split('-');
+		const history = game.moveHistory();
+		const records: Record<string, unknown>[] = [];
+		const temp = createStandardGame();
+		for (const record of history) {
+			const move = buildMoveForBoard(temp.getBoard(), record);
+			if (!move) break;
+			temp.executeMove(move);
+			const { move: m, resolution } = record;
+			const idParts = String(m.pieceId).split('-');
 			const pieceName = idParts.length >= 2 ? idParts[1] : 'piece';
 			const teamStr = idParts.length >= 1 ? idParts[0] : 'unknown';
-			const record: Record<string, unknown> = {
+			const rec: Record<string, unknown> = {
 				pieceName,
 				team: teamStr,
-				from: move.from.toAlgebraic().toUpperCase(),
-				to: move.to.toAlgebraic().toUpperCase(),
+				from: m.from.toAlgebraic().toUpperCase(),
+				to: m.to.toAlgebraic().toUpperCase(),
+				fen: temp.toFEN(),
 			};
-			if (move instanceof CastleMove) {
-				record.type = 'castle';
-			} else if (move instanceof EnPassantMove) {
-				record.type = 'enPassant';
-			} else if (move instanceof PromotionMove) {
-				record.type = 'promotion';
+			if (m instanceof CastleMove) {
+				rec.type = 'castle';
+			} else if (m instanceof EnPassantMove) {
+				rec.type = 'enPassant';
+			} else if (m instanceof PromotionMove) {
+				rec.type = 'promotion';
 				if (resolution.promotedPiece) {
-					record.promotion = resolution.promotedPiece.type;
+					rec.promotion = resolution.promotedPiece.type;
 				}
 			}
-			return record;
-		});
+			records.push(rec);
+		}
 		const blob = new Blob([JSON.stringify({ schemaVersion: GAME_SCHEMA_VERSION, moves: records }, null, 2)], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a'); a.href = url; a.download = 'chess-game.json'; a.click();
 		URL.revokeObjectURL(url);
 	};
 
-  const handleImportClick = () => fileInputRef.current?.click();
+  const handleImportClick = () => {
+		setImportError(null);
+		setShowImportModal(true);
+	};
 
   const handleImportFile: React.ChangeEventHandler<HTMLInputElement> = async (ev) => {
 		const file = ev.target.files?.[0];
 		if (!file) return;
 		const text = await file.text();
+		setImportError(null);
 		try {
 			const json = JSON.parse(text);
 			if (json && (typeof json.gamesPlayed === 'number' || Array.isArray(json.games))) {
@@ -284,49 +303,79 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
 			}
 			if (Array.isArray(json.moves)) {
 				const fresh = createStandardGame();
+				let lastError: string | null = null;
 				for (const m of json.moves) {
-					const from = typeof m.from === 'string' ? Position.fromAlgebraic(m.from) : Position.fromCoordinates(m.from.row, m.from.column);
-					const to = typeof m.to === 'string' ? Position.fromAlgebraic(m.to) : Position.fromCoordinates(m.to.row, m.to.column);
-					let pieceId: string | null = typeof m.pieceId === 'string' ? m.pieceId : null;
-					if (!pieceId) {
-						const pieceAtFrom = fresh.getBoard().getPiece(from);
-						pieceId = pieceAtFrom ? pieceAtFrom.id : null;
-					}
-					if (!pieceId) { continue; }
-					const moveTypeRaw =
-						typeof m.type === 'string'
-							? m.type
-							: typeof m.promotion === 'string'
-								? 'promotion'
-								: 'simple';
-					const moveType = typeof moveTypeRaw === 'string' ? moveTypeRaw.toLowerCase() : moveTypeRaw;
-					let move: Move;
-					if (moveType === 'castle') {
-						const rookFrom = Position.fromCoordinates(from.row, to.column > from.column ? 7 : 0);
-						const rookTo = Position.fromCoordinates(from.row, to.column > from.column ? 5 : 3);
-						const rook = fresh.getBoard().getPiece(rookFrom);
-						if (!rook) {
-							continue;
+					try {
+						const from = typeof m.from === 'string' ? Position.fromAlgebraic(m.from) : Position.fromCoordinates(m.from.row, m.from.column);
+						const to = typeof m.to === 'string' ? Position.fromAlgebraic(m.to) : Position.fromCoordinates(m.to.row, m.to.column);
+						let pieceId: string | null = typeof m.pieceId === 'string' ? m.pieceId : null;
+						if (!pieceId) {
+							const pieceAtFrom = fresh.getBoard().getPiece(from);
+							pieceId = pieceAtFrom ? pieceAtFrom.id : null;
 						}
-						move = new CastleMove(pieceId, from, to, rook.id, rookFrom, rookTo);
-					} else if (moveType === 'enpassant') {
-						const capturedPos = Position.fromCoordinates(from.row, to.column);
-						move = new EnPassantMove(pieceId, from, to, capturedPos);
-					} else if (moveType === 'promotion') {
-						const rawPromotion = typeof m.promotion === 'string' ? m.promotion.toUpperCase() : '';
-						const promoteTo = (Object.values(PieceType) as string[]).includes(rawPromotion)
-							? (rawPromotion as PieceType)
-							: PieceType.Queen;
-						move = new PromotionMove(pieceId, from, to, promoteTo);
-					} else {
-						move = new SimpleMove(pieceId, from, to);
+						if (!pieceId) {
+							lastError = 'No piece on source square for a move in the JSON';
+							break;
+						}
+						const moveTypeRaw =
+							typeof m.type === 'string'
+								? m.type
+								: typeof m.promotion === 'string'
+									? 'promotion'
+									: 'simple';
+						const moveType = typeof moveTypeRaw === 'string' ? moveTypeRaw.toLowerCase() : moveTypeRaw;
+						let move: Move;
+						if (moveType === 'castle') {
+							const rookFrom = Position.fromCoordinates(from.row, to.column > from.column ? 7 : 0);
+							const rookTo = Position.fromCoordinates(from.row, to.column > from.column ? 5 : 3);
+							const rook = fresh.getBoard().getPiece(rookFrom);
+							if (!rook) {
+								lastError = 'Rook not found for castling in JSON';
+								break;
+							}
+							move = new CastleMove(pieceId, from, to, rook.id, rookFrom, rookTo);
+						} else if (moveType === 'enpassant') {
+							const capturedPos = Position.fromCoordinates(from.row, to.column);
+							move = new EnPassantMove(pieceId, from, to, capturedPos);
+						} else if (moveType === 'promotion') {
+							const rawPromotion = typeof m.promotion === 'string' ? m.promotion.toUpperCase() : '';
+							const promoteTo = (Object.values(PieceType) as string[]).includes(rawPromotion)
+								? (rawPromotion as PieceType)
+								: PieceType.Queen;
+							move = new PromotionMove(pieceId, from, to, promoteTo);
+						} else {
+							move = new SimpleMove(pieceId, from, to);
+						}
+						fresh.executeMove(move);
+					} catch (err) {
+						lastError = err instanceof Error ? err.message : 'Invalid move in JSON';
+						break;
 					}
-					try { fresh.executeMove(move); } catch {}
+				}
+				if (lastError) {
+					setImportError(lastError);
+					ev.target.value = '';
+					return;
 				}
 				setGame(fresh);
+				setShowImportModal(false);
 			}
-		} catch {}
+		} catch (err) {
+			setImportError(err instanceof Error ? err.message : 'Invalid JSON');
+		}
 		ev.target.value = '';
+  };
+
+  const handleImportFEN = () => {
+		setImportError(null);
+		try {
+			const fresh = createGameFromFEN(fenInput.trim());
+			setGame(fresh);
+			setFenInput('');
+			setShowImportModal(false);
+		} catch (err) {
+			setImportError(err instanceof Error ? err.message : 'Invalid FEN');
+		}
   };
   // Bot move effect: when it's bot's turn, pick a capture-first move and simulate clicks
   const performBotMove = useCallback(() => {
@@ -523,6 +572,54 @@ return (
 							onChange={handleImportFile}
 							className="hidden"
 						/>
+						{showImportModal ? (
+							<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
+								<div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl">
+									<h2 id="import-modal-title" className="mb-3 text-lg font-semibold text-slate-100">Import</h2>
+									{importError ? (
+										<p className="mb-3 rounded bg-rose-500/20 px-3 py-2 text-sm text-rose-200">{importError}</p>
+									) : null}
+									<div className="space-y-4">
+										<div>
+											<p className="mb-1 text-sm text-slate-400">Import from JSON file</p>
+											<button
+												type="button"
+												onClick={() => fileInputRef.current?.click()}
+												className="rounded-md bg-slate-700 px-3 py-2 text-sm text-slate-100 hover:bg-slate-600"
+											>
+												Select JSON file
+											</button>
+										</div>
+										<div>
+											<p className="mb-1 text-sm text-slate-400">Import from FEN string</p>
+											<textarea
+												value={fenInput}
+												onChange={(e) => setFenInput(e.target.value)}
+												placeholder="e.g. rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
+												className="mb-2 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+												rows={3}
+											/>
+											<button
+												type="button"
+												onClick={handleImportFEN}
+												className="rounded-md bg-slate-700 px-3 py-2 text-sm text-slate-100 hover:bg-slate-600"
+											>
+												Load FEN
+											</button>
+										</div>
+									</div>
+									<div className="mt-4 flex justify-end">
+										<button
+											type="button"
+											onClick={() => { setShowImportModal(false); setImportError(null); setFenInput(''); }}
+											className="rounded-md bg-slate-700 px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600"
+										>
+											Close
+										</button>
+									</div>
+								</div>
+							</div>
+						) : null}
 						<div className="space-y-4">
                         <InfoPanel
                             currentTurn={currentTurn}

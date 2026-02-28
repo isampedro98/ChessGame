@@ -68,7 +68,7 @@ Each folder contains its own README with additional context and extension points
 - Piece-legal movement for all standard pieces.
 - Self-check moves are filtered during move generation (UI and bot) and rejected in `Game.executeMove`.
 - Special moves are implemented in `Game` (castling, en passant, promotion). Promotion defaults to a queen.
-- Winner detection covers checkmate plus stalemate/insufficient material draws.
+- Winner detection: checkmate, stalemate, insufficient material, and draw rules (threefold repetition, 50-move rule).
 
 ## Gameplay & Controls
 - Interaction is in the 3D scene; the 2D board is a read-only mirror with highlights.
@@ -85,24 +85,23 @@ Each folder contains its own README with additional context and extension points
   - Keep Viewing (no reset)
 
 ## Export/Import Format (Game)
-Game export produces a schema-versioned payload:
+Game export uses **schema version 2** (version 1 is still accepted on import).
+
+**Version 2** – each move includes `fen` (FEN of the position *after* that move):
 
 ```
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "moves": [
-    { "pieceName": "pawn", "team": "white", "from": "E2", "to": "E4" },
-    { "pieceName": "pawn", "team": "black", "from": "E7", "to": "E5" },
-    { "type": "castle", "pieceName": "king", "team": "white", "from": "E1", "to": "G1" },
-    { "type": "enPassant", "pieceName": "pawn", "team": "white", "from": "E5", "to": "D6" },
-    { "type": "promotion", "promotion": "QUEEN", "pieceName": "pawn", "team": "white", "from": "A7", "to": "A8" }
+    { "pieceName": "pawn", "team": "white", "from": "E2", "to": "E4", "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1" },
+    { "pieceName": "pawn", "team": "black", "from": "E7", "to": "E5", "fen": "..." }
   ]
 }
 ```
 
-Importer notes:
-- Legacy format with `pieceId` and `row/column` objects is still accepted.
-- If `schemaVersion` is missing, version 1 is assumed.
+**Import** (all versions):
+- **Legacy (schemaVersion 1 or missing):** Board is computed by replaying moves; `pieceId` and `row/column` objects are still accepted.
+- **Version 2:** Same replay-based import; `fen` in the JSON is for reproducibility/validation (e.g. external tools). Only JSON with schema version **strictly less than** the current app version is treated as legacy; v2 is the current format.
 - If `type` is missing, the move is treated as a standard move.
 - If `pieceId` is not present, the importer infers the piece on the `from` square.
 
@@ -123,13 +122,15 @@ Stats are stored under `chess.stats` as:
       "capturedBlack": 7,
       "winner": "WHITE" | "BLACK" | null,
       "startedAt": "2025-03-01T10:20:30.000Z",
-      "endedAt": "2025-03-01T10:35:01.000Z"
+      "endedAt": "2025-03-01T10:35:01.000Z",
+      "pgn": "[Event \"?\"] ... 1. e4 e5 ..."
     }
   ]
 }
 ```
 
 - Export/Import stats from the UI.
+- Each finished game can store **PGN** (Standard Algebraic Notation); in the Stats panel you can **Copy PGN** or **Show PGN** per game.
 - Schema versioning is in place for future migrations.
 
 ## Optional Wood Textures (Board)
@@ -149,12 +150,13 @@ Stats are stored under `chess.stats` as:
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Versioning
-Current version: `0.5.3` (2026-02-28). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
+Current version: **0.5.4** (2026-02-28). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |
 | --- | --- | --- | --- |
-| Engine rules | core piece movement, captures, self-check enforcement, check/checkmate detection, special moves (castling, en passant, promotion) | stalemate/perft diagnostics | FEN/PGN import/export |
+| Engine rules | core piece movement, captures, self-check enforcement, check/checkmate detection, special moves, threefold repetition, 50-move rule | perft diagnostics | load from FEN (optional) |
+| Export/Import | JSON v2 with FEN per move; legacy v1 accepted on import; PGN per game in stats | — | PGN import (parser) |
 | Bot | training heuristic bot with move feedback | evaluation tuning | minimax depth 2/3 |
 | 3D scene | board + pieces + materials + lighting, move tweens, instanced board squares | raycast selection | InstancedMesh / mergeGeometries for pieces |
 | UI/UX | export/import, stats, i18n, static export | settings panel | keyboard shortcuts, mobile polish |

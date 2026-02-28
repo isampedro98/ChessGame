@@ -39,9 +39,10 @@ Ordered by importance and ROI.
 - Castling strictness (rook/king moved, pass-through check).
 - Add explicit tests for these cases.
 
-## 6) FEN import/export (PGN later)
-- FEN first for state reproducibility.
-- PGN after that (as already planned in README).
+## 6) ~~FEN import/export (PGN later)~~ (done)
+- ~~FEN first for state reproducibility~~ – Game export v2 includes `fen` per move; `Game.toFEN()` in domain.
+- ~~PGN for scoreboard~~ – `gameToPGN()`, SAN in `pgn.ts`; each finished game stores PGN; Stats panel: Copy PGN / Show PGN.
+- Import: legacy (schemaVersion &lt; 2) still accepted; replay from moves only (FEN in v2 for documentation/validation).
 
 ## 7) Promotion UI + tests
 - Simple modal for piece choice (already in place).
