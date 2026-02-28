@@ -64,6 +64,26 @@ Each folder contains its own README with additional context and extension points
 - `Move` defines `from`/`to` plus `validate`, `execute`, and `revert`; history records the move and resolution (captures).
 - UI (`app/`) and 3D scene (`chess-scene/`) are pure projections of `Game` state. No hidden state outside the domain.
 
+## Visible Architecture
+```text
+Domain -> Engine -> UI
+
+domain/chess        -> rules, legal moves, state transitions
+app/hooks           -> orchestration and interaction flow
+app/components      -> panels, controls, board UI
+chess-scene         -> Three.js rendering/builders (projection only)
+```
+
+- Mutations are centralized in domain methods (`Game.executeMove`, `Game.undoLastMove`).
+- Rendering layers consume domain state but do not own game rules.
+- The domain and scene builders are covered by tests (`vitest` suites under `src/domain/chess/__tests__` and `src/chess-scene/__tests__`).
+
+## Server Actions Fit
+- This app is configured as static export (`output: 'export'`) and deployed to GitHub Pages.
+- For that reason, **Server Actions are not the right default for mutations here** (no persistent server runtime in this deployment model).
+- Current mutation strategy is client-driven domain updates, keeping the chess engine deterministic and testable.
+- If the project later moves to a server-backed architecture (accounts, shared matches, persistence), server actions or API routes can be introduced for those server-side concerns.
+
 ## Rules Coverage (Current)
 - Piece-legal movement for all standard pieces.
 - Self-check moves are filtered during move generation (UI and bot) and rejected in `Game.executeMove`.
@@ -150,7 +170,7 @@ Stats are stored under `chess.stats` as:
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Versioning
-Current version: **0.6.0** (2026-02-28). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
+Current version: **0.6.1** (2026-02-28). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |

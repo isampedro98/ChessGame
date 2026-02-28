@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1] - 2026-02-28
+### Changes
+- Refined UI layout by splitting `Game Status` and `Game Actions` into separate panels.
+- Moved `Rules for Beginners` to the left column above Stats for better board readability.
+- Added a dedicated `GameStatusPanel` above the Three.js scene (turn, moves, max-moves, state chip).
+- Grouped game actions logically (Flow / Training / Data).
+- Updated CI cache key to include `package.json` so app-version badge updates are not stale after release bumps.
+
+### Done
+- Training UX layout restructuring is now clearer and easier to scan.
+- Beginner rules are now placed where they support board reading and learning flow.
+
+### Ongoing
+- Move list quality upgrades (SAN/LAN clarity in History panel).
+
+### TODO
+- Engine hints while playing (candidate moves + lightweight decision tree).
+
 ## [0.6.0] - 2026-02-28
 ### Changes
 - Added Training UX backstep in UI with `Undo`, wired to `undoLastMove()`.

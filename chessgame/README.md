@@ -64,6 +64,26 @@ Each folder contains its own README with additional context and extension points
 - `Move` defines `from`/`to` plus `validate`, `execute`, and `revert`; history records the move and resolution (captures).
 - UI (`app/`) and 3D scene (`chess-scene/`) are pure projections of `Game` state. No hidden state outside the domain.
 
+## Visible Architecture
+```text
+Domain -> Engine -> UI
+
+domain/chess   -> rules and state transitions
+app/hooks      -> orchestration layer
+app/components -> user-facing controls/panels
+chess-scene    -> 3D projection of current game state
+```
+
+- Domain mutations are centralized (`Game.executeMove`, `Game.undoLastMove`).
+- Rules stay in the engine, UI stays declarative.
+- Domain and scene layers are reinforced by test suites.
+
+## Server Actions Fit
+- This project uses static export (`output: 'export'`) for GitHub Pages.
+- In this deployment model, server actions are not the natural default for chess-state mutations.
+- Current approach: deterministic client-side domain mutations.
+- Server actions/API routes would make sense only after moving to a server-backed runtime (accounts, multiplayer, persistent storage).
+
 ## Rules Coverage (Current)
 - Piece-legal movement for all standard pieces.
 - Self-check moves are filtered during move generation (UI and bot) and rejected in `Game.executeMove`.
@@ -132,7 +152,7 @@ Stats are stored under `chess.stats` as:
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Versioning
-Current version: **0.6.0** (2026-02-28). See `CHANGELOG.md` for details.
+Current version: **0.6.1** (2026-02-28). See `CHANGELOG.md` for details.
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |
