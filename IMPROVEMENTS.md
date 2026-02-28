@@ -15,6 +15,7 @@ Ordered by importance and ROI.
 9. ~~**Legal move edge cases** (Sec 5) - pins, en passant, castling tests~~
 10. **3D performance** (Sec 11) - piece instancing, raycast throttle
 11. **Engine hints** (Sec 17) - basic move suggestions and mini decision tree guidance
+12. **Three.js endgame overlay** (Sec 18) - in-scene end-of-game status banner and actions
 
 ---
 
@@ -88,3 +89,8 @@ Ordered by importance and ROI.
 - Suggest 2-3 candidate moves each turn with a short reason for each.
 - Show a basic decision tree (if opponent does X, your solid replies are A/B).
 - Keep it lightweight (heuristics first, no heavy search required at first version).
+
+## 18) Three.js endgame overlay
+- Show a clear in-scene status when the game finishes (checkmate/draw/max-moves).
+- Surface quick actions directly in that context (new game, rematch, keep viewing).
+- Keep it readable over the board with responsive sizing and non-intrusive styling.

@@ -8,8 +8,9 @@ React components that render the chess experience inside the Next.js application
 components/
   BoardGrid.tsx        Board layout, coordinates, and highlights
   ChessScene.tsx       Three.js canvas wrapper that mounts the scene helpers
+  GameStatusPanel.tsx  Compact current-game status summary above 3D scene
   HistoryPanel.tsx     Move list with scrolling and contextual actions
-  InfoPanel.tsx        Summary of the current game state (turn, status, etc.)
+  InfoPanel.tsx        Game actions grouped by flow/training/data
   LanguageSwitcher.tsx Locale toggle hooked into the i18n provider
   RulesPanel.tsx       Collapsible beginner guide with key rules and official link
 ```

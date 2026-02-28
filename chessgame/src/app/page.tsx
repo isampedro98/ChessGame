@@ -4,6 +4,7 @@ import { JSX, useCallback, useEffect, useRef, useState } from 'react';
 
 import { BoardGrid } from '@/app/components/BoardGrid';
 import { HistoryPanel } from '@/app/components/HistoryPanel';
+import { GameStatusPanel } from '@/app/components/GameStatusPanel';
 import { InfoPanel } from '@/app/components/InfoPanel';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import { RulesPanel } from '@/app/components/RulesPanel';
@@ -100,6 +101,7 @@ export default function Home(): JSX.Element {
 		captureDestinations,
     inCheckSquareKey,
     checkmateSquareKey,
+    result,
 	} = useChessUI(game, {
 		onMove: (event: MoveEvent) => {
 			if (!botEnabled) return;
@@ -548,10 +550,20 @@ return (
                         </div>
                       </div>
                     ) : null}
+                    <RulesPanel />
                     <StatsPanel stats={stats} onExport={handleExportStats} />
 					</div>
 
 					<div className="space-y-4">
+            <GameStatusPanel
+              currentTurn={currentTurn}
+              movesCount={history.length}
+              maxMoves={maxMoves}
+              onChangeMaxMoves={(v) => setMaxMoves(v)}
+              inCheck={Boolean(inCheckSquareKey) && !checkmateSquareKey}
+              isCheckmate={Boolean(checkmateSquareKey)}
+              result={result}
+            />
 						<div className="flex items-center justify-between gap-3">
 							<h2 className="text-lg font-semibold">{t('scene.title')}</h2>
 							<div className="flex items-center gap-2 text-xs text-slate-300">
@@ -648,13 +660,9 @@ return (
 						) : null}
 						<div className="space-y-4">
                         <InfoPanel
-                            currentTurn={currentTurn}
                             instruction={instruction}
                             message={message}
                             trainingFeedback={trainingFeedback}
-                            movesCount={history.length}
-                            maxMoves={maxMoves}
-                            onChangeMaxMoves={(v) => setMaxMoves(v)}
                             onNewGame={handleNewGame}
                             onExportGame={handleExportGame}
                             onImportGame={handleImportClick}
@@ -663,7 +671,6 @@ return (
                             canUndo={canUndo}
                             botEnabled={botEnabled}
                         />
-                        <RulesPanel />
                         {pendingPromotion ? (
                           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
                             <div className="text-sm font-semibold">{t('promotion.title')}</div>

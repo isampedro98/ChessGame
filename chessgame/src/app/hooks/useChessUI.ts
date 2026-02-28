@@ -290,6 +290,7 @@ export const useChessUI = (
     scenePieces,
     selectedSquareKey: selection?.originKey ?? null,
     currentTurn,
+    result,
     inCheckSquareKey,
     checkmateSquareKey,
   };
