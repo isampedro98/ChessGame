@@ -37,9 +37,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: chessgame/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('chessgame/package-lock.json') }}-${{ hashFiles('chessgame/**/*.[jt]s', 'chessgame/**/*.[jt]sx') }}
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('chessgame/package-lock.json', 'chessgame/package.json') }}-${{ hashFiles('chessgame/**/*.[jt]s', 'chessgame/**/*.[jt]sx') }}
           restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('chessgame/package-lock.json') }}-
+            ${{ runner.os }}-nextjs-${{ hashFiles('chessgame/package-lock.json', 'chessgame/package.json') }}-
 
       - name: Install dependencies
         working-directory: ./chessgame
