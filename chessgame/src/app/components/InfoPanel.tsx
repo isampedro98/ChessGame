@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useTranslation } from '@/app/i18n/TranslationProvider';
 import { Team } from '@/domain/chess';
@@ -43,6 +43,7 @@ export const InfoPanel = ({ currentTurn, instruction, message, trainingFeedback,
             className="rounded-md bg-slate-800 px-2 py-1 text-slate-100"
           >
             <option value="">Unlimited</option>
+            <option value="50">50 (professional max)</option>
             <option value="40">40</option>
             <option value="60">60</option>
             <option value="80">80</option>

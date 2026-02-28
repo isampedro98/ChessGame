@@ -28,9 +28,10 @@ Ordered by importance and ROI.
 ## 3) ~~Remove king-capture fallback~~ (done)
 - ~~Either remove it entirely or keep it only as a debug mode.~~
 
-## 4) Draw rules: threefold repetition + 50-move rule
-- Core chess rules for correctness.
-- Domain: position hash/FEN history + halfmove counter; check in `getResult()`.
+## 4) ~~Draw rules: threefold repetition + 50-move rule~~ (done)
+- ~~Core chess rules for correctness.~~
+- ~~Domain: position key (board + turn + castling + ep), `positionKeys[]` for threefold; `halfMovesWithoutCaptureOrPawn` for 50-move; both checked in `getResult()`.~~
+- ~~Max moves select: added option "50 (professional max)" in InfoPanel.~~
 
 ## 5) Legal move edge cases
 - Pins, discovered checks, double checks.
@@ -72,3 +73,6 @@ Ordered by importance and ROI.
 
 ## 14) Erase history
 - Allow user to erase matches history
+
+## 15) Add changelog to frontend
+- Add hiddable changelog section in frontend

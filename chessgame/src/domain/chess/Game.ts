@@ -1,4 +1,4 @@
-﻿import { Team, oppositeTeam } from './core/Team';
+import { Team, oppositeTeam } from './core/Team';
 import type { Move, MoveResolution } from './core/Move';
 import type { Piece } from './core/Piece';
 import { Board } from './core/Board';
@@ -7,6 +7,9 @@ import { Position } from './core/Position';
 import { CastleMove } from './moves/CastleMove';
 import { EnPassantMove } from './moves/EnPassantMove';
 import { PromotionMove } from './moves/PromotionMove';
+
+/** Half-moves (plies) since last capture or pawn move; used for 50-move rule. */
+const FIFTY_MOVE_THRESHOLD = 50;
 
 interface MoveRecord {
   move: Move;
@@ -19,6 +22,12 @@ export class Game {
   private readonly board: Board;
   private turn: Team = Team.White;
   private readonly history: MoveRecord[] = [];
+  /** Half-move count for 50-move rule: resets on capture or pawn move. */
+  private halfMovesWithoutCaptureOrPawn = 0;
+  /** Stack of halfMove values before each move, for undo. */
+  private readonly halfMoveStack: number[] = [];
+  /** Position keys after each move (board + turn + castling + ep) for threefold repetition. */
+  private readonly positionKeys: string[] = [];
 
   constructor(pieces: Piece[]) {
     this.board = new Board(pieces);
@@ -140,6 +149,70 @@ export class Game {
     return this.history.some((record) => record.move.pieceId === pieceId);
   }
 
+  /** Builds a key for the current position (board + turn + castling + ep) for threefold repetition. */
+  private getPositionKey(): string {
+    const board = this.board;
+    const files = 'abcdefgh';
+    let boardPart = '';
+    for (let row = 7; row >= 0; row -= 1) {
+      for (let col = 0; col < 8; col += 1) {
+        const pos = Position.fromCoordinates(row, col);
+        const piece = board.getPiece(pos);
+        if (!piece) {
+          boardPart += '.';
+          continue;
+        }
+        const c = { [PieceType.Pawn]: 'P', [PieceType.Knight]: 'N', [PieceType.Bishop]: 'B', [PieceType.Rook]: 'R', [PieceType.Queen]: 'Q', [PieceType.King]: 'K' }[piece.type];
+        boardPart += piece.team === Team.White ? c : c.toLowerCase();
+      }
+    }
+    const turnChar = this.turn === Team.White ? 'w' : 'b';
+    const e1 = Position.fromCoordinates(0, 4);
+    const a1 = Position.fromCoordinates(0, 0);
+    const h1 = Position.fromCoordinates(0, 7);
+    const e8 = Position.fromCoordinates(7, 4);
+    const a8 = Position.fromCoordinates(7, 0);
+    const h8 = Position.fromCoordinates(7, 7);
+    let castling = '';
+    const wk = board.getPiece(e1);
+    if (wk?.type === PieceType.King && wk.team === Team.White && !this.hasMoved(wk.id)) {
+      const rh = board.getPiece(h1);
+      if (rh?.type === PieceType.Rook && rh.team === Team.White && !this.hasMoved(rh.id)) castling += 'K';
+      const ra = board.getPiece(a1);
+      if (ra?.type === PieceType.Rook && ra.team === Team.White && !this.hasMoved(ra.id)) castling += 'Q';
+    }
+    const bk = board.getPiece(e8);
+    if (bk?.type === PieceType.King && bk.team === Team.Black && !this.hasMoved(bk.id)) {
+      const rh = board.getPiece(h8);
+      if (rh?.type === PieceType.Rook && rh.team === Team.Black && !this.hasMoved(rh.id)) castling += 'k';
+      const ra = board.getPiece(a8);
+      if (ra?.type === PieceType.Rook && ra.team === Team.Black && !this.hasMoved(ra.id)) castling += 'q';
+    }
+    if (!castling) castling = '-';
+    let ep = '-';
+    const last = this.history[this.history.length - 1];
+    if (last) {
+      const { move } = last;
+      const piece = board.getPiece(move.to);
+      if (piece?.type === PieceType.Pawn && Math.abs(move.to.row - move.from.row) === 2) {
+        const epRow = (move.from.row + move.to.row) / 2;
+        ep = Position.fromCoordinates(epRow, move.to.column).toAlgebraic();
+      }
+    }
+    return `${boardPart}${turnChar}${castling}${ep}`;
+  }
+
+  private hasThreefoldRepetition(): boolean {
+    if (this.positionKeys.length === 0) return false;
+    const current = this.getPositionKey();
+    const count = this.positionKeys.filter((k) => k === current).length;
+    return count >= 3;
+  }
+
+  private hasFiftyMoveDraw(): boolean {
+    return this.halfMovesWithoutCaptureOrPawn >= FIFTY_MOVE_THRESHOLD;
+  }
+
   private promotionRow(team: Team): number {
     return team === Team.White ? 7 : 0;
   }
@@ -254,6 +327,14 @@ export class Game {
       return 'DRAW';
     }
 
+    if (this.hasThreefoldRepetition()) {
+      return 'DRAW';
+    }
+
+    if (this.hasFiftyMoveDraw()) {
+      return 'DRAW';
+    }
+
     const current = this.turn;
     if (this.hasLegalMove(current)) return null;
     return this.isInCheck(this.board, current) ? oppositeTeam(current) : 'DRAW';
@@ -276,6 +357,7 @@ export class Game {
       throw new Error('The piece specified does not match the move descriptor.');
     }
 
+    const wasPawn = piece.type === PieceType.Pawn;
     move.validate(this.board);
     const resolution = move.execute(this.board);
     if (this.isInCheck(this.board, this.turn)) {
@@ -284,12 +366,25 @@ export class Game {
     }
     this.history.push({ move, resolution });
     this.turn = oppositeTeam(this.turn);
+
+    this.halfMoveStack.push(this.halfMovesWithoutCaptureOrPawn);
+    if (resolution.capturedPiece || wasPawn) {
+      this.halfMovesWithoutCaptureOrPawn = 0;
+    } else {
+      this.halfMovesWithoutCaptureOrPawn += 1;
+    }
+    this.positionKeys.push(this.getPositionKey());
   }
 
   undoLastMove(): void {
     const record = this.history.pop();
     if (!record) {
       return;
+    }
+    this.positionKeys.pop();
+    const prevHalf = this.halfMoveStack.pop();
+    if (prevHalf !== undefined) {
+      this.halfMovesWithoutCaptureOrPawn = prevHalf;
     }
     record.move.revert(this.board, record.resolution);
     this.turn = oppositeTeam(this.turn);
