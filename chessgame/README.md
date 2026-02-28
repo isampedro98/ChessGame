@@ -2,6 +2,23 @@
 
 Next.js application that pairs a TypeScript chess engine with a fully rendered Three.js board. The repository contains the domain logic, a modular 3D scene, and the UI layer that ties everything together.
 
+## What Is This Project?
+- A pure TypeScript chess engine with clean layering.
+- A deterministic rules core projected into both UI and 3D.
+- A didactic codebase where game correctness is visible and testable.
+- A reproducible playground using structured export/import (FEN/PGN-aware flow).
+
+## Why This Project Matters
+- Demonstrates why strong typing improves reliability in evolving software.
+- Shows how OOP helps model business rules with clear boundaries and responsibilities.
+- Proves that a deterministic engine can drive multiple presentations (2D UI + 3D scene) without duplicating logic.
+- Balances product UX goals with engine correctness and testability.
+
+## Learning Mode
+- Understand what beginners can learn while playing and reading feedback.
+- See how rules are enforced directly in domain classes and move objects.
+- Follow where move legality, special rules, and results are implemented in code.
+
 ## Demo
 https://isampedro98.github.io/ChessGame/
 
