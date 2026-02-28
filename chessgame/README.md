@@ -1,5 +1,7 @@
 # ChessGame
 
+A domain-driven chess engine written in strict TypeScript, projected into both a React UI and a Three.js scene, designed as a technical showcase of layered architecture and product thinking.
+
 Next.js application that pairs a TypeScript chess engine with a fully rendered Three.js board. The repository contains the domain logic, a modular 3D scene, and the UI layer that ties everything together.
 
 ## What Is This Project?
@@ -95,6 +97,13 @@ chess-scene    -> 3D projection of current game state
 - Rules stay in the engine, UI stays declarative.
 - Domain and scene layers are reinforced by test suites.
 
+## Architectural Principles
+- Domain is the single source of truth.
+- UI is a projection layer.
+- 3D scene never owns chess state.
+- Prefer deterministic replay over implicit mutation.
+- Strong typing and OOP boundaries over ad-hoc runtime branching.
+
 ## Server Actions Fit
 - This project uses static export (`output: 'export'`) for GitHub Pages.
 - In this deployment model, server actions are not the natural default for chess-state mutations.
@@ -174,12 +183,12 @@ Current version: **0.6.1** (2026-02-28). See `CHANGELOG.md` for details.
 ## Status and Roadmap
 | Area | Done | In progress | Planned |
 | --- | --- | --- | --- |
-| Engine rules | core piece movement, captures, self-check, special moves, threefold, 50-move rule | perft diagnostics | load from FEN |
-| Export/Import | JSON v2 with FEN per move; legacy v1 accepted; PGN per game in stats | — | PGN import |
+| Engine rules | core piece movement, captures, self-check enforcement, check/checkmate detection, special moves, threefold repetition, 50-move rule | perft diagnostics | load from FEN (optional) |
+| Export/Import | JSON v2 with FEN per move; legacy v1 accepted on import; PGN per game in stats | - | PGN import (parser) |
 | Bot | training heuristic bot with move feedback | evaluation tuning | minimax depth 2/3 |
-| 3D scene | board + pieces + materials + lighting, move tweens, instanced board squares | raycast selection | InstancedMesh / mergeGeometries for pieces |
-| UI/UX | export/import, stats, i18n, static export | settings panel | keyboard shortcuts, mobile polish |
-| Testing | Vitest runner, scene builder smoke tests, special-move tests | domain legality tests | perft benchmarks |
+| 3D scene | board + pieces + materials + lighting, move tweens, instanced board squares, check/checkmate markers | raycast selection | InstancedMesh / mergeGeometries for pieces |
+| UI/UX | export/import, stats, i18n, collapsible Stats/History, Rules panel placement, split Game Status and Game Actions | settings panel | keyboard shortcuts, mobile polish |
+| Testing | Vitest runner, scene builder smoke tests, per-piece tests, special-move tests, legal-edge-case tests | perft diagnostics depth expansion | perft benchmarks |
 
 ## CI/CD (GitHub Actions)
 A single workflow handles lint, build, and deploy to GitHub Pages.
@@ -220,6 +229,17 @@ Workflow location: `.github/workflows/nextjs.yml`.
   - `TranslationProvider` with static dictionaries (`en`, `es`). Keys centralised in `translations.ts`.
 - Accessibility:
   - ARIA labels on board squares and visible focus for interactions.
+
+## Contributing
+Contributions are welcome. If you open an issue or PR, include context, expected behavior, and tests when domain logic changes.
+
+Suggested issue labels:
+- good first issue
+- architecture discussion
+- engine correctness
+- ui polish
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for scope, coding standards, and PR checklist.
 
 ## References and Credits
 - Inspiration for Three.js piece modeling: https://github.com/Sushant-Coder-01/chess3d
