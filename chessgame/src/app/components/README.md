@@ -11,6 +11,7 @@ components/
   HistoryPanel.tsx     Move list with scrolling and contextual actions
   InfoPanel.tsx        Summary of the current game state (turn, status, etc.)
   LanguageSwitcher.tsx Locale toggle hooked into the i18n provider
+  RulesPanel.tsx       Collapsible beginner guide with key rules and official link
 ```
 
 ## Responsibilities

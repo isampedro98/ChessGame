@@ -11,9 +11,10 @@ Ordered by importance and ROI.
 5. **Training UX** (Sec 9) - undo in UI, highlight check/checkmate
 6. **Move list quality** (Sec 10) - SAN (or LAN) in history
 7. ~~**Promotion** (Sec 7) - engine reject pawn/king, tests~~
-8. **Rules panel** (Sec 8) - in-app short rules + link to official
+8. ~~**Rules panel** (Sec 8) - in-app short rules + link to official~~
 9. ~~**Legal move edge cases** (Sec 5) - pins, en passant, castling tests~~
 10. **3D performance** (Sec 11) - piece instancing, raycast throttle
+11. **Engine hints** (Sec 17) - basic move suggestions and mini decision tree guidance
 
 ---
 
@@ -49,9 +50,10 @@ Ordered by importance and ROI.
 - ~~Engine enforces valid promotion targets only (queen/rook/bishop/knight).~~
 - ~~Dedicated tests added for invalid promotion to pawn/king.~~
 
-## 8) Rules panel for beginners (in-app)
-- Short, guided rules so noobs can learn while playing.
-- Link to official rules for deeper reading.
+## 8) ~~Rules panel for beginners (in-app)~~ (done)
+- ~~Added a collapsible in-app panel with concise beginner guidance.~~
+- ~~Included practical checkpoints (objective, legality, opening, filtering moves, endgame habits).~~
+- ~~Added direct link to official FIDE rules for deeper reading.~~
 
 ## 9) Training UX
 - Undo / backstep replay (critical for training) - expose `undoLastMove()` in UI.
@@ -80,3 +82,8 @@ Ordered by importance and ROI.
 
 ## 16) Choose AI side
 - Choose side if against AI (Training mode ON).
+
+## 17) Engine hints while playing
+- Suggest 2-3 candidate moves each turn with a short reason for each.
+- Show a basic decision tree (if opponent does X, your solid replies are A/B).
+- Keep it lightweight (heuristics first, no heavy search required at first version).

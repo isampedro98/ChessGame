@@ -6,6 +6,7 @@ import { BoardGrid } from '@/app/components/BoardGrid';
 import { HistoryPanel } from '@/app/components/HistoryPanel';
 import { InfoPanel } from '@/app/components/InfoPanel';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
+import { RulesPanel } from '@/app/components/RulesPanel';
 import { StatsPanel } from '@/app/components/StatsPanel';
 import { SquareInfo, useChessUI, type MoveEvent } from '@/app/hooks/useChessUI';
 import { analyzeTrainingMove, chooseTrainingMove } from '@/app/chess-ui/training';
@@ -635,6 +636,7 @@ return (
                             onPlayBot={handleToggleBot}
                             botEnabled={botEnabled}
                         />
+                        <RulesPanel />
                         {pendingPromotion ? (
                           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
                             <div className="text-sm font-semibold">{t('promotion.title')}</div>
