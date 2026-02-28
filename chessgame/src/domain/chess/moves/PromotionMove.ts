@@ -7,6 +7,13 @@ import { Team } from '../core/Team';
 import { Pawn, Queen, Rook, Bishop, Knight } from '../pieces';
 
 export class PromotionMove extends Move {
+  private static readonly allowedPromotionTargets = new Set<PieceType>([
+    PieceType.Queen,
+    PieceType.Rook,
+    PieceType.Bishop,
+    PieceType.Knight,
+  ]);
+
   constructor(
     pieceId: string,
     from: Position,
@@ -24,6 +31,9 @@ export class PromotionMove extends Move {
     const pawn = this.getPieceToMove(board);
     if (pawn.type !== PieceType.Pawn) {
       throw new Error('Promotion move requires a pawn.');
+    }
+    if (!PromotionMove.allowedPromotionTargets.has(this.promoteTo)) {
+      throw new Error('Promotion target must be QUEEN, ROOK, BISHOP, or KNIGHT.');
     }
 
     const promotionRow = pawn.team === Team.White ? 7 : 0;

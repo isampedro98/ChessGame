@@ -83,4 +83,40 @@ describe('special moves', () => {
     const last = game.moveHistory().at(-1);
     expect(last?.resolution.isPromotion).toBe(true);
   });
+
+  test('rejects promotion to pawn', () => {
+    const whiteKing = new King('white-king', Team.White, Position.fromAlgebraic('e1'));
+    const blackKing = new King('black-king', Team.Black, Position.fromAlgebraic('e8'));
+    const whitePawn = new Pawn('white-pawn', Team.White, Position.fromAlgebraic('a7'));
+    const game = new Game([whiteKing, blackKing, whitePawn]);
+
+    const invalidPromotion = new PromotionMove(
+      whitePawn.id,
+      Position.fromAlgebraic('a7'),
+      Position.fromAlgebraic('a8'),
+      PieceType.Pawn,
+    );
+
+    expect(() => game.executeMove(invalidPromotion)).toThrow(
+      'Promotion target must be QUEEN, ROOK, BISHOP, or KNIGHT.',
+    );
+  });
+
+  test('rejects promotion to king', () => {
+    const whiteKing = new King('white-king', Team.White, Position.fromAlgebraic('e1'));
+    const blackKing = new King('black-king', Team.Black, Position.fromAlgebraic('e8'));
+    const whitePawn = new Pawn('white-pawn', Team.White, Position.fromAlgebraic('a7'));
+    const game = new Game([whiteKing, blackKing, whitePawn]);
+
+    const invalidPromotion = new PromotionMove(
+      whitePawn.id,
+      Position.fromAlgebraic('a7'),
+      Position.fromAlgebraic('a8'),
+      PieceType.King,
+    );
+
+    expect(() => game.executeMove(invalidPromotion)).toThrow(
+      'Promotion target must be QUEEN, ROOK, BISHOP, or KNIGHT.',
+    );
+  });
 });
