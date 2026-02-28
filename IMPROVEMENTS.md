@@ -8,7 +8,7 @@ Ordered by importance and ROI.
 2. ~~**DevEx / CI** (Sec 13) - add `npm test` to CI, optional coverage~~
 3. ~~**Draw rules** (Sec 4) - threefold repetition + 50-move rule~~
 4. ~~**FEN** (Sec 6) - import/export for state reproducibility, then PGN~~
-5. **Training UX** (Sec 9) - undo in UI, highlight check/checkmate
+5. ~~**Training UX** (Sec 9) - undo in UI, highlight check/checkmate~~
 6. **Move list quality** (Sec 10) - SAN (or LAN) in history
 7. ~~**Promotion** (Sec 7) - engine reject pawn/king, tests~~
 8. ~~**Rules panel** (Sec 8) - in-app short rules + link to official~~
@@ -55,9 +55,10 @@ Ordered by importance and ROI.
 - ~~Included practical checkpoints (objective, legality, opening, filtering moves, endgame habits).~~
 - ~~Added direct link to official FIDE rules for deeper reading.~~
 
-## 9) Training UX
-- Undo / backstep replay (critical for training) - expose `undoLastMove()` in UI.
-- Highlight check/checkmate visually (2D board + optional 3D).
+## 9) ~~Training UX~~ (done)
+- ~~Added undo/backstep in UI (`Undo` action wired to `undoLastMove()`).~~
+- ~~In bot-training mode, undo can step back through bot response and player move to restore the trainee turn.~~
+- ~~Added check/checkmate visual highlighting in 2D board and 3D scene markers.~~
 
 ## 10) Move list quality
 - SAN or LAN notation in history (replace or supplement "e2 -> e4" in HistoryPanel).

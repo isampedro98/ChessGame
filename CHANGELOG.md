@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-02-28
+### Changes
+- Added Training UX backstep in UI with `Undo`, wired to `undoLastMove()`.
+- In bot-training mode, undo can step back through bot reply and player move to restore trainee turn.
+- Added check/checkmate visual highlights on 2D board and 3D scene markers.
+- Added collapsible controls for Stats and Move History panels.
+
+### Done
+- Improvement #9 completed (Training UX).
+
+### Ongoing
+- Move list quality upgrades (SAN/LAN clarity in History panel).
+
+### TODO
+- Engine hints while playing (candidate moves + lightweight decision tree).
+
 ## [0.5.5] - 2026-02-28
 ### Changes
 - Added a dedicated legal-edge-case test suite covering pins, double-check, en passant timing/self-check, and castling after king/rook movement.

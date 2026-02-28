@@ -16,10 +16,12 @@ interface InfoPanelProps {
   onExportGame: () => void;
   onImportGame: () => void;
   onPlayBot: () => void;
+  onUndoMove: () => void;
+  canUndo?: boolean;
   botEnabled?: boolean;
 }
 
-export const InfoPanel = ({ currentTurn, instruction, message, trainingFeedback, movesCount, maxMoves, onChangeMaxMoves, onNewGame, onExportGame, onImportGame, onPlayBot, botEnabled = false }: InfoPanelProps) => {
+export const InfoPanel = ({ currentTurn, instruction, message, trainingFeedback, movesCount, maxMoves, onChangeMaxMoves, onNewGame, onExportGame, onImportGame, onPlayBot, onUndoMove, canUndo = false, botEnabled = false }: InfoPanelProps) => {
   const { t } = useTranslation();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -51,6 +53,18 @@ export const InfoPanel = ({ currentTurn, instruction, message, trainingFeedback,
           </select>
         </label>
         <button onClick={onNewGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">{t('menu.newGame') || 'New Game'}</button>
+        <button
+          type="button"
+          onClick={onUndoMove}
+          disabled={!canUndo}
+          className={`rounded-md px-3 py-1.5 text-xs ${
+            canUndo
+              ? 'bg-slate-800 text-slate-100 hover:bg-slate-700'
+              : 'cursor-not-allowed bg-slate-900 text-slate-600'
+          }`}
+        >
+          {t('menu.undo') || 'Undo'}
+        </button>
         <button onClick={onExportGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">{t('menu.exportGame') || 'Export Game'}</button>
         <button onClick={onImportGame} className="rounded-md bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">{t('menu.import') || 'Import'}</button>
         <button

@@ -150,7 +150,7 @@ Stats are stored under `chess.stats` as:
 - Planned: extend legality coverage (check, self-check edge cases) plus lightweight scene builder snapshots.
 
 ## Versioning
-Current version: **0.5.5** (2026-02-28). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
+Current version: **0.6.0** (2026-02-28). See `CHANGELOG.md` for details (Changes / Done / Ongoing / TODO per release).
 
 ## Status and Roadmap
 | Area | Done | In progress | Planned |

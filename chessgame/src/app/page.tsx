@@ -93,10 +93,13 @@ export default function Home(): JSX.Element {
 		message,
 		onSquareClick,
 		applyMove,
+		undoLastMove,
 		scenePieces,
 		selectedSquareKey,
 		currentTurn,
 		captureDestinations,
+    inCheckSquareKey,
+    checkmateSquareKey,
 	} = useChessUI(game, {
 		onMove: (event: MoveEvent) => {
 			if (!botEnabled) return;
@@ -427,6 +430,24 @@ const currentGameStartRef = useRef<string>(new Date().toISOString());
     setTrainingFeedback(null);
     setPendingPromotion(null);
   };
+  const handleUndoMove = () => {
+    if (pendingPromotion || pendingSummary) {
+      return;
+    }
+    const undone = undoLastMove();
+    if (!undone) {
+      return;
+    }
+    if (botEnabled) {
+      while (game.getTurn() === botSide && game.moveHistory().length > 0) {
+        if (!undoLastMove()) {
+          break;
+        }
+      }
+    }
+    setTrainingFeedback(null);
+  };
+  const canUndo = history.length > 0 && !pendingSummary && !pendingPromotion;
   // Detect end of game (winner or draw by max moves), persist stats once, and prompt user
   useEffect(() => {
     const result: GameResult = game.getResult();
@@ -493,6 +514,8 @@ return (
 							squares={squares}
 							availableDestinations={availableDestinations}
 							selectedSquareKey={selectedSquareKey}
+              inCheckSquareKey={inCheckSquareKey}
+              checkmateSquareKey={checkmateSquareKey}
 							currentTurn={currentTurn}
 						/>
                     <p className="text-sm text-slate-500">{t('board.subtitle')}</p>
@@ -564,6 +587,8 @@ return (
 								selectedSquareKey={selectedSquareKey}
 								availableDestinations={availableDestinations}
 								captureDestinations={captureDestinations}
+                inCheckSquareKey={inCheckSquareKey}
+                checkmateSquareKey={checkmateSquareKey}
 							/>
 						</div>
 						<input
@@ -634,6 +659,8 @@ return (
                             onExportGame={handleExportGame}
                             onImportGame={handleImportClick}
                             onPlayBot={handleToggleBot}
+                            onUndoMove={handleUndoMove}
+                            canUndo={canUndo}
                             botEnabled={botEnabled}
                         />
                         <RulesPanel />

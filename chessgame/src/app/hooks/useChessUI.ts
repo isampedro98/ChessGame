@@ -147,6 +147,18 @@ export const useChessUI = (
     [game, onMove, t],
   );
 
+  const undoLastMove = useCallback((): boolean => {
+    if (game.moveHistory().length === 0) {
+      return false;
+    }
+    game.undoLastMove();
+    setSelection(null);
+    setCandidateMoves([]);
+    setVersion((value) => value + 1);
+    setMessage(null);
+    return true;
+  }, [game]);
+
   const squares = useMemo(() => buildSquares(game, version), [game, version]);
 
   const availableDestinations = useMemo(
@@ -229,6 +241,32 @@ export const useChessUI = (
   const currentTurn = game.getTurn();
   const result: GameResult = game.getResult();
 
+  const findKingSquareKey = useCallback((team: Team): string | null => {
+    const king = game
+      .getBoard()
+      .getPiecesByTeam(team)
+      .find((piece) => piece.type === PieceType.King);
+    return king ? king.getPosition().toKey() : null;
+  }, [game]);
+
+  const inCheckSquareKey = useMemo(() => {
+    if (result !== null) {
+      return null;
+    }
+    return game.isKingInCheck(currentTurn) ? findKingSquareKey(currentTurn) : null;
+  }, [currentTurn, findKingSquareKey, game, result]);
+
+  const checkmateSquareKey = useMemo(() => {
+    if (!(result === Team.White || result === Team.Black)) {
+      return null;
+    }
+    const losingTeam = result === Team.White ? Team.Black : Team.White;
+    if (!game.isKingInCheck(losingTeam)) {
+      return null;
+    }
+    return findKingSquareKey(losingTeam);
+  }, [findKingSquareKey, game, result]);
+
   const instruction = result
     ? result === Team.White
       ? t('info.winner.whites')
@@ -248,8 +286,11 @@ export const useChessUI = (
     message,
     onSquareClick: handleSquareClick,
     applyMove,
+    undoLastMove,
     scenePieces,
     selectedSquareKey: selection?.originKey ?? null,
     currentTurn,
+    inCheckSquareKey,
+    checkmateSquareKey,
   };
 };

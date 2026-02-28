@@ -17,6 +17,8 @@ export const updateMarkers = (
   selectedKey: string | null,
   destinations: Set<string>,
   captureDestinations: Set<string> = new Set(),
+  inCheckKey: string | null = null,
+  checkmateKey: string | null = null,
 ): void => {
   while (root.children.length > 0) {
     const c = root.children.pop();
@@ -49,4 +51,24 @@ export const updateMarkers = (
     dot.userData.col = c;
     root.add(dot);
   });
+
+  if (inCheckKey) {
+    const checkRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.48, 0.58, 32),
+      new THREE.MeshBasicMaterial({ color: '#fbbf24', transparent: true, opacity: 0.9, side: THREE.DoubleSide }),
+    );
+    checkRing.rotation.x = -Math.PI / 2;
+    checkRing.position.copy(toWorld(inCheckKey));
+    root.add(checkRing);
+  }
+
+  if (checkmateKey) {
+    const mateRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.5, 0.62, 32),
+      new THREE.MeshBasicMaterial({ color: '#fb7185', transparent: true, opacity: 0.95, side: THREE.DoubleSide }),
+    );
+    mateRing.rotation.x = -Math.PI / 2;
+    mateRing.position.copy(toWorld(checkmateKey));
+    root.add(mateRing);
+  }
 };

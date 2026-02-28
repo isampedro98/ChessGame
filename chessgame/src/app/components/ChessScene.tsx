@@ -38,6 +38,8 @@ interface ChessSceneProps {
   selectedSquareKey?: string | null;
   availableDestinations?: Set<string>;
   captureDestinations?: Set<string>;
+  inCheckSquareKey?: string | null;
+  checkmateSquareKey?: string | null;
 }
 
 const factoryByType: Record<PieceType, (m: THREE.Material) => THREE.Object3D> =
@@ -61,6 +63,8 @@ export default function ChessScene({
   selectedSquareKey = null,
   availableDestinations = new Set(),
   captureDestinations = new Set(),
+  inCheckSquareKey = null,
+  checkmateSquareKey = null,
 }: ChessSceneProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -261,8 +265,15 @@ export default function ChessScene({
 			scene.add(root);
 			markersRootRef.current = root;
 		}
-		updateMarkers(root, selectedSquareKey, availableDestinations, captureDestinations);
-	}, [selectedSquareKey, availableDestinations, captureDestinations]);
+		updateMarkers(
+      root,
+      selectedSquareKey,
+      availableDestinations,
+      captureDestinations,
+      inCheckSquareKey,
+      checkmateSquareKey,
+    );
+	}, [selectedSquareKey, availableDestinations, captureDestinations, inCheckSquareKey, checkmateSquareKey]);
 
 	const targetPosition = (row: number, col: number): THREE.Vector3 =>
 		new THREE.Vector3(
@@ -329,7 +340,6 @@ export default function ChessScene({
 		/>
 	);
 }
-
 
 
 

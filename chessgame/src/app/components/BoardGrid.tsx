@@ -9,6 +9,8 @@ interface BoardGridProps {
   squares: SquareInfo[];
   availableDestinations: Set<string>;
   selectedSquareKey: string | null;
+  inCheckSquareKey?: string | null;
+  checkmateSquareKey?: string | null;
   currentTurn: Team;
 }
 
@@ -16,6 +18,8 @@ export const BoardGrid = ({
   squares,
   availableDestinations,
   selectedSquareKey,
+  inCheckSquareKey = null,
+  checkmateSquareKey = null,
   currentTurn,
 }: BoardGridProps) => {
   const { t } = useTranslation();
@@ -27,11 +31,17 @@ export const BoardGrid = ({
           const key = square.position.toKey();
           const isSelected = selectedSquareKey === key;
           const isTarget = availableDestinations.has(key);
+          const isInCheck = inCheckSquareKey === key;
+          const isCheckmate = checkmateSquareKey === key;
           const hasEnemyPiece =
             isTarget && square.piece && !square.piece.belongsTo(currentTurn);
 
           const base = square.isDark ? 'bg-slate-800' : 'bg-slate-700/40';
-          const highlight = isSelected
+          const highlight = isCheckmate
+            ? 'ring-2 ring-rose-500 ring-inset bg-rose-500/20'
+            : isInCheck
+            ? 'ring-2 ring-amber-400/80 ring-inset bg-amber-500/15'
+            : isSelected
             ? 'ring-2 ring-emerald-400/70 ring-inset'
             : isTarget
             ? hasEnemyPiece
