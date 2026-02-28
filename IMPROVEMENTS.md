@@ -12,7 +12,7 @@ Ordered by importance and ROI.
 6. **Move list quality** (§10) – SAN (or LAN) in history  
 7. **Promotion** (§7) – engine reject pawn/king, tests  
 8. **Rules panel** (§8) – in-app short rules + link to official  
-9. **Legal move edge cases** (§5) – pins, en passant, castling tests  
+9. ~~**Legal move edge cases** (�5) - pins, en passant, castling tests~~  
 10. **3D performance** (§11) – piece instancing, raycast throttle  
 
 ---
@@ -33,11 +33,11 @@ Ordered by importance and ROI.
 - ~~Domain: position key (board + turn + castling + ep), `positionKeys[]` for threefold; `halfMovesWithoutCaptureOrPawn` for 50-move; both checked in `getResult()`.~~
 - ~~Max moves select: added option "50 (professional max)" in InfoPanel.~~
 
-## 5) Legal move edge cases
-- Pins, discovered checks, double checks.
-- En passant legality edge cases (only immediately after double-step, plus self-check).
-- Castling strictness (rook/king moved, pass-through check).
-- Add explicit tests for these cases.
+## 5) ~~Legal move edge cases~~ (done)
+- ~~Pins, discovered checks, and double checks are covered by explicit tests.~~
+- ~~En passant edge cases are covered: immediate-only window and self-check rejection.~~
+- ~~Castling strictness is covered: king/rook moved and pass-through attack constraints.~~
+- ~~Added explicit test suite in `legalMoveEdgeCases.test.ts`.~~
 
 ## 6) ~~FEN import/export (PGN later)~~ (done)
 - ~~FEN first for state reproducibility~~ – Game export v2 includes `fen` per move; `Game.toFEN()` in domain.
@@ -77,3 +77,6 @@ Ordered by importance and ROI.
 
 ## 15) Add changelog to frontend
 - Add hiddable changelog section in frontend
+
+## 15) Choose AI side
+- Choose side if agains AI (Training mode ON)
