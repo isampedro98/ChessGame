@@ -25,8 +25,8 @@ export const BoardGrid = ({
   const { t } = useTranslation();
 
   return (
-    <div className="relative ml-6 inline-block pb-8">
-      <div className="grid w-full grid-cols-8 grid-rows-8 overflow-hidden rounded-xl border border-slate-800 shadow-inner">
+    <div className="relative mb-6 ml-6 inline-block">
+      <div className="grid grid-cols-8 grid-rows-8 overflow-hidden rounded-xl border border-slate-800 shadow-inner">
         {squares.map((square) => {
           const key = square.position.toKey();
           const isSelected = selectedSquareKey === key;
@@ -68,12 +68,12 @@ export const BoardGrid = ({
           );
         })}
       </div>
-      <div className="pointer-events-none absolute -left-6 top-0 grid h-full grid-rows-8 place-items-center text-xs font-semibold text-slate-500">
+      <div className="pointer-events-none absolute -left-6 inset-y-0 grid grid-rows-8 place-items-center text-xs font-semibold text-slate-500">
         {RANKS.map((rank) => (
           <span key={rank}>{rank}</span>
         ))}
       </div>
-      <div className="pointer-events-none absolute bottom-0 left-0 grid w-full grid-cols-8 place-items-center text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+      <div className="pointer-events-none absolute left-0 top-full mt-1 grid w-full grid-cols-8 place-items-center text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
         {FILES.map((file) => (
           <span key={file}>{file}</span>
         ))}

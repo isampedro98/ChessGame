@@ -20,6 +20,7 @@ import {
   type MoveDetails,
 } from '@/app/chess-ui/helpers';
 import { useTranslation } from '@/app/i18n/TranslationProvider';
+import { gameToSANMoves } from '@/domain/chess/pgn';
 
 export type SquareInfo = {
   id: string;
@@ -75,11 +76,10 @@ const buildSquares = (game: Game, version: number): SquareInfo[] => {
 const buildHistory = (game: Game, version: number): HistoryEntry[] => {
   void version;
   const history = game.moveHistory();
-  const board = game.getBoard();
+  const sanMoves = gameToSANMoves(game);
 
   return history.map(({ move, resolution }, index) => {
-    const piece = board.getPiece(move.to);
-    const details = describeMove(index, move, piece, resolution);
+    const details = describeMove(index, move, undefined, resolution, sanMoves[index]);
     return {
       sequence: index + 1,
       ...details,

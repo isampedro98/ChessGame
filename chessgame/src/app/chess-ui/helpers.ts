@@ -38,9 +38,11 @@ export const describeMove = (
   move: Move,
   piece: Piece | undefined,
   resolution: MoveResolution,
+  notation?: string,
 ): MoveDetails => {
   const pieceLabel = piece ? getPieceSymbol(piece) : '';
-  const title = `${index + 1}. ${pieceLabel ? `${pieceLabel} ` : ''}${move.description()}`;
+  const fallbackTitle = `${index + 1}. ${pieceLabel ? `${pieceLabel} ` : ''}${move.description()}`;
+  const title = notation ?? fallbackTitle;
 
   const notes: MoveNote[] = [];
   if (resolution.capturedPiece) {

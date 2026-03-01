@@ -9,7 +9,7 @@ Ordered by importance and ROI.
 3. ~~**Draw rules** (Sec 4) - threefold repetition + 50-move rule~~
 4. ~~**FEN** (Sec 6) - import/export for state reproducibility, then PGN~~
 5. ~~**Training UX** (Sec 9) - undo in UI, highlight check/checkmate~~
-6. **Move list quality** (Sec 10) - SAN (or LAN) in history
+6. ~~**Move list quality** (Sec 10) - SAN in history~~
 7. ~~**Promotion** (Sec 7) - engine reject pawn/king, tests~~
 8. ~~**Rules panel** (Sec 8) - in-app short rules + link to official~~
 9. ~~**Legal move edge cases** (Sec 5) - pins, en passant, castling tests~~
@@ -64,8 +64,10 @@ Ordered by importance and ROI.
 - ~~In bot-training mode, undo can step back through bot response and player move to restore the trainee turn.~~
 - ~~Added check/checkmate visual highlighting in 2D board and 3D scene markers.~~
 
-## 10) Move list quality
-- SAN or LAN notation in history (replace or supplement "e2 -> e4" in HistoryPanel).
+## 10) ~~Move list quality~~ (done)
+- ~~Move history now renders SAN notation (human-readable) instead of raw coordinate descriptions.~~
+- ~~Shared SAN generation in domain (`gameToSANMoves`) is reused by History and PGN to keep notation consistent.~~
+- ~~Added SAN/PGN tests (`pgn.test.ts`) and LAN-like fallback if replay reconstruction fails.~~
 
 ## 11) 3D performance
 - Piece instancing / merge pass.
@@ -136,7 +138,7 @@ Ordered by importance and ROI.
 ```
 - Formula and update rules:
   - Expected score: `E = 1 / (1 + 10 ^ ((R_bot - R_user) / 400))`.
-  - Update: `R_new = R_old + K * (S - E)`.
+  - Update: `R_new = R_old + K * (S - E)`. (add max moves of game to score)
   - Score `S`: win `1`, draw `0.5`, loss `0`.
   - Suggested `K`: `40` for first 20 rated games (provisional), then `24`.
   - Update only once when game transitions to terminal state.

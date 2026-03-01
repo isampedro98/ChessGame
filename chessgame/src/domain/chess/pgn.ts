@@ -33,7 +33,7 @@ export function moveToSAN(
   isCheckmate: boolean,
   promotionPiece?: PieceType,
 ): string {
-  const to = move.to.toAlgebraic();
+  const to = move.to.toAlgebraic().toLowerCase();
   const capture = board.getPiece(move.to) != null;
 
   if (move instanceof CastleMove) {
@@ -42,7 +42,8 @@ export function moveToSAN(
   }
 
   if (piece.type === PieceType.Pawn) {
-    const fromFile = move.from.toAlgebraic()[0];
+    const fromSquare = move.from.toAlgebraic().toLowerCase();
+    const fromFile = fromSquare[0];
     const base = capture ? `${fromFile}x${to}` : to;
     if (move instanceof PromotionMove || promotionPiece) {
       const p = promotionPiece ?? PieceType.Queen;
@@ -62,14 +63,14 @@ export function moveToSAN(
     const moves = other.generateMoves(board);
     if (moves.some((m) => m.to.equals(move.to))) {
       if (other.getPosition().column !== piece.getPosition().column && other.getPosition().row !== piece.getPosition().row) {
-        disambiguator = move.from.toAlgebraic();
+        disambiguator = move.from.toAlgebraic().toLowerCase();
         break;
       }
       if (other.getPosition().column !== piece.getPosition().column) {
-        disambiguator = move.from.toAlgebraic()[0];
+        disambiguator = move.from.toAlgebraic().toLowerCase()[0];
         break;
       }
-      disambiguator = move.from.toAlgebraic()[1];
+      disambiguator = move.from.toAlgebraic().toLowerCase()[1];
       break;
     }
   }
@@ -114,6 +115,49 @@ export function buildMoveForBoard(
   return new SimpleMove(piece.id, from, to);
 }
 
+const lanFallback = (move: Move): string =>
+  `${move.from.toAlgebraic().toLowerCase()}-${move.to.toAlgebraic().toLowerCase()}`;
+
+/**
+ * Returns SAN per half-move in history order.
+ * If a replay step cannot be reconstructed, falls back to LAN-like notation.
+ */
+export function gameToSANMoves(game: Game): string[] {
+  const history = game.moveHistory();
+  if (history.length === 0) {
+    return [];
+  }
+
+  const temp = createStandardGame() as Game;
+  const sanMoves: string[] = [];
+
+  for (const record of history) {
+    const boardBefore = temp.getBoard();
+    const boardSnapshot = boardBefore.clone();
+    const move = buildMoveForBoard(boardBefore, record);
+    if (!move) {
+      sanMoves.push(lanFallback(record.move));
+      continue;
+    }
+
+    const piece = boardBefore.getPiece(move.from);
+    if (!piece) {
+      sanMoves.push(lanFallback(record.move));
+      continue;
+    }
+    const pieceSnapshot = piece.clone();
+
+    const promotionPiece = record.resolution.promotedPiece?.type;
+    temp.executeMove(move);
+    const isCheck = temp.isKingInCheck(temp.getTurn());
+    const result = temp.getResult();
+    const isCheckmate = result === Team.White || result === Team.Black;
+    sanMoves.push(moveToSAN(boardSnapshot, move, pieceSnapshot, isCheck, isCheckmate, promotionPiece));
+  }
+
+  return sanMoves;
+}
+
 /**
  * Builds PGN text for a finished or in-progress game.
  * Replays history on a fresh game to resolve SAN (with correct piece IDs).
@@ -128,33 +172,22 @@ export function gameToPGN(game: Game): string {
     '[Black "?"]',
     `[Result "${resultToPGN(game.getResult())}"]`,
   ];
-  const history = game.moveHistory();
-  if (history.length === 0) {
+  const sanMoves = gameToSANMoves(game);
+  if (sanMoves.length === 0) {
     return headers.join('\n') + '\n\n';
   }
-  const temp = createStandardGame() as Game;
+
   const moves: string[] = [];
   let fullMoveNumber = 1;
-  let whiteTurn = true;
-  for (const record of history) {
-    const boardBefore = temp.getBoard();
-    const move = buildMoveForBoard(boardBefore, record);
-    if (!move) break;
-    const piece = boardBefore.getPiece(move.from)!;
-    const resolution = record.resolution;
-    const promotionPiece = resolution.promotedPiece?.type;
-    temp.executeMove(move);
-    const isCheck = temp.isKingInCheck(temp.getTurn());
-    const result = temp.getResult();
-    const isCheckmate = result === Team.White || result === Team.Black;
-    const san = moveToSAN(boardBefore, move, piece, isCheck, isCheckmate, promotionPiece);
+  for (let index = 0; index < sanMoves.length; index += 1) {
+    const san = sanMoves[index];
+    const whiteTurn = index % 2 === 0;
     if (whiteTurn) {
       moves.push(`${fullMoveNumber}. ${san}`);
     } else {
       moves[moves.length - 1] += ` ${san}`;
       fullMoveNumber += 1;
     }
-    whiteTurn = !whiteTurn;
   }
   const moveText = moves.join(' ');
   return headers.join('\n') + '\n\n' + moveText + '\n';

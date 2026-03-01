@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - 2026-03-01
+### Changes
+- Move history now renders SAN notation (human-readable) instead of raw coordinate descriptions.
+- Added shared SAN generation in domain via `gameToSANMoves` and reused it in both History and PGN export paths.
+- Added dedicated SAN/PGN tests (`src/domain/chess/__tests__/pgn.test.ts`) and LAN-like fallback notation when replay reconstruction fails.
+- Fixed Domain board coordinate alignment so rank labels (1-8) map correctly to board rows.
+- Updated max-moves selector UX: explicit `50 (professional max)`, reordered options, and removed `100`.
+- Expanded project docs: strategic README framing, Architectural Principles, Contributing guide, and roadmap specs for local rating, bot levels, and multiplayer paths.
+
+### Done
+- Improvement #10 completed (Move list quality with SAN history notation).
+- Domain board coordinate labels now stay visually aligned with the grid.
+
+### Ongoing
+- 3D performance pass (piece instancing / raycast throttling).
+
+### TODO
+- Engine hints while playing (candidate moves + lightweight decision tree).
+
 ## [0.6.1] - 2026-02-28
 ### Changes
 - Refined UI layout by splitting `Game Status` and `Game Actions` into separate panels.
